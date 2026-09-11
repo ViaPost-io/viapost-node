@@ -1,0 +1,94 @@
+{
+  "name": "@viapost/sdk",
+  "version": "0.1.0",
+  "description": "Official server-side TypeScript SDK for the ViaPost API",
+  "keywords": ["viapost", "email", "transactional-email", "sdk", "typescript"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ViaPost-io/viapost-node.git"
+  },
+  "homepage": "https://docs.viapost.io",
+  "bugs": {
+    "url": "https://github.com/ViaPost-io/viapost-node/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "browser": {
+    "./dist/index.js": "./dist/browser.js",
+    "./dist/index.cjs": "./dist/browser.cjs"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "browser": {
+        "types": "./dist/browser.d.ts",
+        "import": "./dist/browser.js",
+        "require": "./dist/browser.cjs"
+      },
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./openapi": {
+      "import": {
+        "types": "./dist/generated/openapi.d.ts",
+        "default": "./dist/generated/openapi.js"
+      },
+      "require": {
+        "types": "./dist/generated/openapi.d.cts",
+        "default": "./dist/generated/openapi.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": [
+    "./dist/browser.js",
+    "./dist/browser.cjs"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsup",
+    "check:contract": "node scripts/check-openapi.mjs",
+    "check:generated": "node scripts/generate-openapi.mjs --check && node scripts/generate-version.mjs --check",
+    "generate": "node scripts/generate-openapi.mjs && node scripts/generate-version.mjs",
+    "sync:contract": "node scripts/sync-openapi.mjs && npm run generate",
+    "lint": "eslint .",
+    "test": "npm run build && node --test",
+    "test:coverage": "npm run build && c8 --include=dist/index.js --check-coverage --lines=90 --functions=90 --branches=80 node --test",
+    "test:package": "npm run build && node scripts/package-consumers.mjs",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run check:generated && npm run lint && npm run typecheck && npm test && npm run test:package && npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.35.0",
+    "@types/node": "22.20.2",
+    "c8": "12.0.0",
+    "eslint": "9.35.0",
+    "openapi-typescript": "7.9.1",
+    "tsup": "8.5.0",
+    "typescript": "5.9.2",
+    "typescript-eslint": "8.42.0",
+    "yaml": "2.9.0"
+  },
+  "overrides": {
+    "esbuild": "0.28.2"
+  }
+}
