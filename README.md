@@ -8,6 +8,15 @@ Do not bundle a ViaPost API key into browser or mobile code.
 
 ## Install / Instalação
 
+The npm registry publication is pending activation of the `@viapost` organization scope. Until
+then, install the exact verified tarball attached to the public `v0.1.0` release:
+
+```bash
+npm install https://github.com/ViaPost-io/viapost-node/releases/download/v0.1.0/viapost-sdk-0.1.0.tgz
+```
+
+After the npm Trusted Publisher is activated, the stable installation command will be:
+
 ```bash
 npm install @viapost/sdk
 ```
