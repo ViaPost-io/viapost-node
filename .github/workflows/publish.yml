@@ -12,24 +12,73 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  publish:
+  verify-and-pack:
     runs-on: ubuntu-latest
-    environment: npm
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.release.tag_name || inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
           package-manager-cache: false
+      - name: Require the tagged commit to be on main
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor HEAD origin/main
       - run: npm ci
       - name: Verify release tag matches package version
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: node scripts/check-release-tag.mjs "$RELEASE_TAG"
-      - run: npm publish --provenance --access public
+      - run: npm run check:contract
+      - run: npm run check:generated
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:package
+      - name: Build inert release tarball
+        run: |
+          npm pack --ignore-scripts
+          mv viapost-sdk-*.tgz package.tgz
+          sha256sum package.tgz > package.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-package
+          path: |
+            package.tgz
+            package.sha256
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: verify-and-pack
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: npm-package
+      - name: Verify artifact integrity and release version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          sha256sum -c package.sha256
+          package_version="$(tar -xOf package.tgz package/package.json | jq -r .version)"
+          test "$RELEASE_TAG" = "v$package_version"
+      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Publish verified tarball without lifecycle scripts
+        run: npm publish package.tgz --ignore-scripts --provenance --access public
