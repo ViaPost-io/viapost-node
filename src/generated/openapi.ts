@@ -385,7 +385,6 @@ export interface paths {
          *     e mensagens curadas, sem métricas, dependências, topologia, detalhes de readiness,
          *     incidentes internos ou dados de tenants. Comunicações públicas de incidente e manutenção
          *     são incluídas somente no campo `notices`.
-         *
          */
         readonly get: operations["getPublicStatus"];
         readonly put?: never;
