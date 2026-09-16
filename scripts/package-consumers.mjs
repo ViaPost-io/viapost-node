@@ -25,7 +25,7 @@ async function writeConsumer(name, packageJson, tsconfig) {
   await writeFile(join(directory, "tsconfig.json"), JSON.stringify(tsconfig, null, 2));
   await writeFile(
     join(directory, "index.ts"),
-    `import { VERSION, ViaPost } from "@viapost/sdk";\nimport type { SendRequest } from "@viapost/sdk";\nimport type { paths } from "@viapost/sdk/openapi";\nconst input: SendRequest = { from: "a@example.com", to: ["b@example.com"], subject: "test", text: "test" };\nconst path: keyof paths = "/v1/send";\nconst client = new ViaPost({ apiKey: "not-a-real-key", fetch: async () => new Response() });\nconsole.log(VERSION, path, input.subject, typeof client.send.create);\n`,
+    `import { VERSION, ViaPost } from "@viapost-io/sdk";\nimport type { MessageDetail, SendRequest } from "@viapost-io/sdk";\nimport type { paths } from "@viapost-io/sdk/openapi";\nconst input: SendRequest = { from: "a@example.com", to: ["b@example.com"], subject: "test", text: "test" };\nconst path: keyof paths = "/v1/send";\nconst detailField = (message: MessageDetail) => message.raw_message_api_path;\nconst client = new ViaPost({ apiKey: "not-a-real-key", fetch: async () => new Response() });\nconst detailPromise: Promise<MessageDetail> = client.messages.retrieve("00000000-0000-0000-0000-000000000000");\nconsole.log(VERSION, path, input.subject, detailField, detailPromise, typeof client.send.create);\n`,
   );
   return directory;
 }
@@ -59,7 +59,7 @@ try {
 
   const browser = spawnSync(
     process.execPath,
-    ["--conditions=browser", "--input-type=module", "--eval", 'import("@viapost/sdk").catch(error => { console.error(error.message); process.exit(23); })'],
+    ["--conditions=browser", "--input-type=module", "--eval", 'import("@viapost-io/sdk").catch(error => { console.error(error.message); process.exit(23); })'],
     { cwd: esm, encoding: "utf8" },
   );
   if (browser.status !== 23 || !/server-side only/i.test(browser.stderr)) {

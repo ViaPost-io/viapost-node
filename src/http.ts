@@ -9,7 +9,7 @@ import { USER_AGENT } from "./version.js";
 
 const DEFAULT_BASE_URL = "https://api.viapost.io";
 const DEFAULT_TIMEOUT_MS = 60_000;
-const DEFAULT_MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
+const DEFAULT_MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_BASE_DELAY_MS = 250;
 const DEFAULT_MAX_DELAY_MS = 30_000;
@@ -29,6 +29,8 @@ export interface HTTPRequestOptions extends RequestOptions {
   readonly query?: Query | object;
   readonly body?: unknown;
   readonly headers?: Readonly<Record<string, string>>;
+  readonly rawBody?: { readonly contentType: string; readonly value: string };
+  readonly responseType?: "auto" | "bytes" | "text";
 }
 
 export class HTTPClient {
@@ -99,12 +101,21 @@ export class HTTPClient {
     const timeoutMs = positiveInteger(options.timeoutMs ?? this.#timeoutMs, "timeoutMs");
     const headers = new Headers(options.headers);
     headers.set("Authorization", `Bearer ${this.#apiKey}`);
-    headers.set("Accept", "application/json");
+    if (!headers.has("Accept")) headers.set("Accept", "application/json");
     headers.set("User-Agent", USER_AGENT);
+    if (options.body !== undefined && options.rawBody !== undefined) {
+      throw new TypeError("body and rawBody are mutually exclusive");
+    }
     let requestBody: string | undefined;
     if (options.body !== undefined) {
       headers.set("Content-Type", "application/json");
       requestBody = JSON.stringify(options.body);
+    } else if (options.rawBody !== undefined) {
+      if (!options.rawBody.contentType.trim() || /[\r\n]/.test(options.rawBody.contentType)) {
+        throw new TypeError("rawBody.contentType must be non-empty and must not contain CR or LF");
+      }
+      headers.set("Content-Type", options.rawBody.contentType);
+      requestBody = options.rawBody.value;
     }
 
     const controller = new AbortController();
@@ -122,10 +133,16 @@ export class HTTPClient {
       const response = await this.#fetch(url, {
         method,
         headers,
+        redirect: "error",
         ...(requestBody === undefined ? {} : { body: requestBody }),
         signal: controller.signal,
       });
-      const responseBody = await readBody(response, controller.signal, this.#maxResponseBytes);
+      const responseBody = await readBody(
+        response,
+        controller.signal,
+        this.#maxResponseBytes,
+        response.ok ? options.responseType : "auto",
+      );
       return { response, body: responseBody };
     } catch (error) {
       if (timedOut) throw new ViaPostTimeoutError(timeoutMs);
@@ -213,9 +230,18 @@ function isLoopbackHostname(hostname: string): boolean {
   );
 }
 
-async function readBody(response: Response, signal: AbortSignal, maxResponseBytes: number): Promise<unknown> {
+async function readBody(
+  response: Response,
+  signal: AbortSignal,
+  maxResponseBytes: number,
+  responseType: "auto" | "bytes" | "text" = "auto",
+): Promise<unknown> {
   if (response.status === 204 || response.status === 205 || response.status === 304) return undefined;
-  if (!response.body) return undefined;
+  if (!response.body) {
+    if (responseType === "bytes") return new Uint8Array();
+    if (responseType === "text") return "";
+    return undefined;
+  }
 
   const contentLength = Number(response.headers.get("content-length"));
   if (Number.isFinite(contentLength) && contentLength > maxResponseBytes) {
@@ -224,8 +250,7 @@ async function readBody(response: Response, signal: AbortSignal, maxResponseByte
   }
 
   const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let text = "";
+  const chunks: Uint8Array[] = [];
   let bytesRead = 0;
   try {
     while (true) {
@@ -233,9 +258,8 @@ async function readBody(response: Response, signal: AbortSignal, maxResponseByte
       if (done) break;
       bytesRead += value.byteLength;
       if (bytesRead > maxResponseBytes) throw new ViaPostResponseTooLargeError(maxResponseBytes);
-      text += decoder.decode(value, { stream: true });
+      chunks.push(value);
     }
-    text += decoder.decode();
   } catch (error) {
     try {
       void reader.cancel(signal.reason ?? error).catch(() => undefined);
@@ -250,7 +274,20 @@ async function readBody(response: Response, signal: AbortSignal, maxResponseByte
       // A custom stream may still have a pending read while its cancellation settles.
     }
   }
-  if (!text) return undefined;
+  if (bytesRead === 0) {
+    if (responseType === "bytes") return new Uint8Array();
+    if (responseType === "text") return "";
+    return undefined;
+  }
+  const bytes = new Uint8Array(bytesRead);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  if (responseType === "bytes") return bytes;
+  const text = new TextDecoder().decode(bytes);
+  if (responseType === "text") return text;
   try {
     return JSON.parse(text) as unknown;
   } catch {

@@ -1,6 +1,6 @@
 {
-  "name": "@viapost/sdk",
-  "version": "0.1.0",
+  "name": "@viapost-io/sdk",
+  "version": "0.2.0",
   "description": "Official server-side TypeScript SDK for the ViaPost API",
   "keywords": ["viapost", "email", "transactional-email", "sdk", "typescript"],
   "repository": {
@@ -62,7 +62,7 @@
   ],
   "publishConfig": {
     "access": "public",
-    "provenance": true
+    "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
     "build": "tsup",

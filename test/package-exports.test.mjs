@@ -27,7 +27,7 @@ test("browser condition blocks loading the server-side SDK", () => {
   });
   const result = spawnSync(
     process.execPath,
-    ["--conditions=browser", "--input-type=module", "--eval", 'await import("@viapost/sdk")'],
+    ["--conditions=browser", "--input-type=module", "--eval", 'await import("@viapost-io/sdk")'],
     { cwd: new URL("..", import.meta.url), encoding: "utf8" },
   );
   assert.notEqual(result.status, 0);
@@ -42,4 +42,14 @@ test("runtime guard blocks legacy bundlers that load the Node entrypoint in a br
   );
   assert.notEqual(browser.status, 0);
   assert.match(browser.stderr, /server-side only/i);
+});
+
+test("runtime guard blocks worker-like runtimes without Node process metadata", () => {
+  const worker = spawnSync(
+    process.execPath,
+    ["--input-type=module", "--eval", 'globalThis.process = undefined; await import("../dist/index.js")'],
+    { cwd: new URL(".", import.meta.url), encoding: "utf8" },
+  );
+  assert.notEqual(worker.status, 0);
+  assert.match(worker.stderr, /server-side only/i);
 });
