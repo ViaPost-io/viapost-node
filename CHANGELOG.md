@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
+## [0.2.1] - 2026-09-16
+
+### Fixed
+
+- Publish the GitHub Package from an explicit local tarball path so npm cannot interpret it as a
+  Git repository shorthand.
+
 ## [0.2.0] - 2026-09-16
 
 ### Added
