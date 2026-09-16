@@ -396,6 +396,69 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/v1/status/subscriptions": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Solicita inscrição nas comunicações da página de status
+         * @description Disponível somente em `status.viapost.io`. Para todo e-mail sintaticamente válido,
+         *     retorna a mesma resposta `202`, independentemente de já existir uma inscrição.
+         */
+        readonly post: operations["postStatusSubscriptions"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/status/subscriptions/confirm": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Confirma uma inscrição na página de status
+         * @description Disponível somente em `status.viapost.io`. A confirmação é idempotente e retorna a
+         *     mesma resposta genérica quando o token válido já foi consumido.
+         */
+        readonly post: operations["postStatusSubscriptionsConfirm"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/status/subscriptions/unsubscribe": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Cancela uma inscrição na página de status
+         * @description Disponível somente em `status.viapost.io`. O cancelamento é idempotente e retorna a
+         *     mesma resposta genérica quando o token válido já foi consumido.
+         */
+        readonly post: operations["postStatusSubscriptionsUnsubscribe"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/v1/inbound-messages": {
         readonly parameters: {
             readonly query?: never;
@@ -422,6 +485,29 @@ export interface paths {
         };
         /** GET /v1/inbound-messages/{id} */
         readonly get: operations["getInboundMessagesId"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/inbound-messages/{id}/raw": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Baixa o arquivo RFC 5322 recebido
+         * @description Retorna o `.eml` bruto exatamente como recebido. A autorização e o isolamento por tenant
+         *     são reavaliados em cada download; a URL relativa não é um bearer token e não pode ser
+         *     compartilhada como uma URL pré-assinada. O conteúdo pode deixar de estar disponível por
+         *     expurgo ou falha transitória do armazenamento, sem remover os metadados da mensagem.
+         */
+        readonly get: operations["getInboundMessagesIdRaw"];
         readonly put?: never;
         readonly post?: never;
         readonly delete?: never;
@@ -505,8 +591,36 @@ export interface paths {
             readonly path?: never;
             readonly cookie?: never;
         };
-        /** GET /v1/messages/{id} */
+        /**
+         * GET /v1/messages/{id}
+         * @description Retorna metadados com `messages:read`. Para Bearer API Keys, os campos de conteúdo e
+         *     `raw_message_api_path` só são incluídos quando a chave também possui
+         *     `messages:content:read`. Sessões autenticadas do painel recebem o conteúdo.
+         */
         readonly get: operations["getMessagesId"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/messages/{id}/raw": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Baixa o arquivo RFC 5322 submetido
+         * @description Retorna o `.eml` armazenado no momento da submissão, antes da reescrita de links e pixel de
+         *     tracking e antes da assinatura DKIM aplicada pelo MTA. Portanto, este arquivo é evidência do
+         *     conteúdo submetido, não uma cópia byte a byte da mensagem entregue ao destinatário. A
+         *     autorização e o isolamento por tenant são reavaliados em cada download.
+         */
+        readonly get: operations["getMessagesIdRaw"];
         readonly put?: never;
         readonly post?: never;
         readonly delete?: never;
@@ -615,6 +729,121 @@ export interface paths {
         readonly put?: never;
         /** POST /v1/send */
         readonly post: operations["postSend"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/suppressions": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Lista supressões do tenant
+         * @description Retorna somente supressões pertencentes ao tenant autenticado. A paginação usa cursor
+         *     opaco e exclusivo. O estado é derivado de `released_at` e `expires_at`; por padrão,
+         *     somente entradas ativas são retornadas. Diagnósticos SMTP brutos não fazem parte deste
+         *     contrato e nunca são expostos.
+         */
+        readonly get: operations["getSuppressions"];
+        readonly put?: never;
+        /**
+         * Adiciona uma supressão manual
+         * @description Normaliza o endereço antes de persistir. `manual` e `invalid_address` são os únicos
+         *     motivos aceitos neste endpoint; motivos derivados de entrega ou consentimento são
+         *     administrados automaticamente. Uma entrada encerrada pode ser reativada. Uma entrada
+         *     ativa idêntica é idempotente, enquanto uma entrada ativa incompatível retorna `409`.
+         */
+        readonly post: operations["postSuppressions"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/suppressions/import": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Importa supressões manuais de um CSV
+         * @description Recebe UTF-8 com o cabeçalho exato `email,reason,expires_at,note`, no máximo 2 MiB e
+         *     1.000 registros. `expires_at` e `note` podem ficar vazios. O arquivo inteiro é validado
+         *     antes da escrita e a importação é atômica: qualquer linha inválida rejeita tudo.
+         *     Endereços repetidos no mesmo arquivo são contabilizados em `duplicates`.
+         */
+        readonly post: operations["postSuppressionsImport"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/suppressions/export": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Exporta supressões do tenant em CSV
+         * @description Exporta o conjunto filtrado com cabeçalho `email,reason,state,origin,expires_at,note,updated_at`.
+         *     Valores iniciados por caracteres de fórmula são neutralizados para impedir formula
+         *     injection ao abrir o arquivo em uma planilha. O CSV nunca contém diagnóstico SMTP bruto.
+         */
+        readonly get: operations["getSuppressionsExport"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/suppressions/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Consulta uma supressão e seu histórico */
+        readonly get: operations["getSuppressionsId"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/suppressions/{id}/release": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Libera um endereço suprimido
+         * @description Operação otimista e auditada. Exige confirmação explícita, a versão atual e justificativa
+         *     entre 10 e 500 caracteres. Supressões por `complaint`, `unsubscribe` ou `spam_trap` não
+         *     podem ser liberadas por esta API. Versão desatualizada, entrada já encerrada ou motivo
+         *     protegido retornam `409` sem alterar o registro.
+         */
+        readonly post: operations["postSuppressionsIdRelease"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -892,6 +1121,135 @@ export interface paths {
         readonly post?: never;
         /** DELETE /v1/webhooks/{id} */
         readonly delete: operations["deleteWebhooksId"];
+        readonly options?: never;
+        readonly head?: never;
+        /**
+         * Atualizar ou reativar um endpoint de webhook
+         * @description Aplica uma alteração com controle otimista de concorrência. Envie a
+         *     `version` atual em `expected_version`; uma versão desatualizada retorna
+         *     `409` sem aplicar parcialmente o formulário.
+         */
+        readonly patch: operations["patchWebhooksId"];
+        readonly trace?: never;
+    };
+    readonly "/v1/webhooks/{id}/deliveries": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Listar entregas de um endpoint
+         * @description Retorna somente metadados operacionais. O corpo enviado, o corpo da
+         *     resposta do destino, headers e secrets nunca fazem parte desta lista.
+         *     A ordenação é estável por criação e UUID, do mais recente para o mais antigo.
+         */
+        readonly get: operations["getWebhooksIdDeliveries"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/webhooks/{id}/deliveries/{delivery_id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Consultar uma entrega e suas tentativas
+         * @description Expõe um resumo seguro do payload por lista de campos permitidos e
+         *     metadados das tentativas. Não expõe destinatários, conteúdo arbitrário,
+         *     resposta bruta do destino, URL do endpoint nem credenciais.
+         */
+        readonly get: operations["getWebhooksIdDeliveriesDeliveryId"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/webhooks/{id}/deliveries/{delivery_id}/replay": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Reenviar uma entrega terminal
+         * @description Cria uma nova entrega a partir de uma entrega `delivered` ou `failed`.
+         *     A nova entrega tem UUID próprio e preserva o evento/payload original.
+         *     O replay é permitido por 7 dias enquanto o payload estiver retido.
+         *     Repetir a solicitação com a mesma chave retorna a mesma operação;
+         *     reutilizar a chave com outra solicitação, ou uma origem expirada, retorna `409`.
+         *     O endpoint precisa estar ativo para uma operação nova; replays em endpoint
+         *     desativado retornam `409` antes da criação de uma nova entrega. Um retry
+         *     idempotente de uma operação já aceita continua retornando o resultado original.
+         *     Novas operações estão sujeitas a cooldown por endpoint, limite persistente
+         *     de 100 por tenant em 24 horas e teto de 100 jobs não terminais.
+         */
+        readonly post: operations["postWebhooksIdDeliveriesDeliveryIdReplay"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/webhooks/{id}/test": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Enviar um evento de teste seguro
+         * @description Enfileira `webhook.test` com um payload fixo gerado pela ViaPost, sem
+         *     dados de mensagens nem destinatários. Repetir a chave de idempotência
+         *     retorna a mesma entrega, inclusive se o endpoint tiver sido desativado depois.
+         *     Uma operação nova exige endpoint ativo e retorna `409` antes de criar a entrega
+         *     quando ele estiver desativado. Novas operações estão sujeitas a cooldown por
+         *     endpoint, limite persistente de 100 por tenant em 24 horas e teto de
+         *     100 jobs não terminais.
+         */
+        readonly post: operations["postWebhooksIdTest"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/webhooks/{id}/secret/rotate": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Rotacionar o secret de assinatura
+         * @description Substitui imediatamente o secret usado nas próximas entregas. O novo
+         *     valor em texto puro só aparece na primeira resposta e deve ser armazenado
+         *     com segurança. Um retry idempotente retorna apenas metadados, sem `secret`;
+         *     o servidor não persiste uma cópia histórica recuperável. A API nunca
+         *     retorna secrets em leituras.
+         */
+        readonly post: operations["postWebhooksIdSecretRotate"];
+        readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
         readonly patch?: never;
@@ -1172,6 +1530,87 @@ export interface components {
             /** @description Comunicações públicas curadas; não inclui diagnóstico, autoria ou dados operacionais. */
             readonly notices?: readonly components["schemas"]["PublicStatusNotice"][];
         };
+        readonly StatusSubscriptionRequest: {
+            /** Format: email */
+            readonly email: string;
+            readonly component_ids?: readonly ("api" | "app" | "inbound" | "automations" | "webhooks" | "tracking")[];
+        };
+        readonly StatusSubscriptionTokenRequest: {
+            readonly token: string;
+        };
+        readonly MessageResponse: {
+            readonly message: string;
+        };
+        /** @enum {string} */
+        readonly SuppressionReason: "hard_bounce" | "complaint" | "unsubscribe" | "manual" | "invalid_address" | "spam_trap";
+        /** @enum {string} */
+        readonly SuppressionOrigin: "manual" | "import" | "automatic";
+        /** @enum {string} */
+        readonly SuppressionState: "active" | "expired" | "released";
+        readonly Suppression: {
+            readonly id: components["schemas"]["UUID"];
+            /** Format: email */
+            readonly email: string;
+            readonly reason: components["schemas"]["SuppressionReason"];
+            readonly origin: components["schemas"]["SuppressionOrigin"];
+            readonly state: components["schemas"]["SuppressionState"];
+            /** @constant */
+            readonly scope: "tenant";
+            /** @description Observação segura fornecida pelo tenant; nunca contém o diagnóstico SMTP bruto. */
+            readonly note?: string | null;
+            readonly domain_id?: components["schemas"]["UUID"] | null;
+            readonly source_message_id?: components["schemas"]["UUID"] | null;
+            readonly smtp_code?: number | null;
+            readonly expires_at?: components["schemas"]["Timestamp"] | null;
+            readonly released_at?: components["schemas"]["Timestamp"] | null;
+            readonly release_reason?: string | null;
+            readonly version: number;
+            readonly created_at: components["schemas"]["Timestamp"];
+            readonly updated_at: components["schemas"]["Timestamp"];
+        };
+        readonly SuppressionList: {
+            readonly data: readonly components["schemas"]["Suppression"][];
+            readonly next_cursor?: string;
+        };
+        readonly SuppressionDetail: {
+            readonly suppression: components["schemas"]["Suppression"];
+            readonly history: readonly components["schemas"]["SuppressionHistoryEvent"][];
+            readonly next_history_cursor?: string;
+        };
+        readonly SuppressionHistoryEvent: {
+            readonly id: components["schemas"]["UUID"];
+            /** @enum {string} */
+            readonly action: "created" | "updated" | "released" | "reactivated";
+            readonly origin: components["schemas"]["SuppressionOrigin"];
+            readonly reason: components["schemas"]["SuppressionReason"];
+            /** @enum {string} */
+            readonly actor_type: "system" | "user" | "api_key";
+            readonly actor_id?: components["schemas"]["UUID"] | null;
+            readonly justification?: string | null;
+            readonly suppression_version: number;
+            readonly occurred_at: components["schemas"]["Timestamp"];
+        };
+        readonly CreateSuppressionRequest: {
+            /** Format: email */
+            readonly email: string;
+            /** @enum {string} */
+            readonly reason: "manual" | "invalid_address";
+            readonly expires_at?: components["schemas"]["Timestamp"] | null;
+            readonly note?: string | null;
+        };
+        readonly ReleaseSuppressionRequest: {
+            readonly expected_version: number;
+            /** @constant */
+            readonly acknowledge: true;
+            readonly justification: string;
+        };
+        readonly SuppressionImportResult: {
+            readonly total: number;
+            readonly created: number;
+            readonly reactivated: number;
+            readonly skipped: number;
+            readonly duplicates: number;
+        };
         readonly PublicStatusComponent: {
             /** @enum {string} */
             readonly id: "api" | "app" | "inbound" | "automations" | "webhooks" | "tracking";
@@ -1257,10 +1696,27 @@ export interface components {
             /** Format: uri */
             readonly download_url?: string;
         };
-        readonly InboundMessageDetail: components["schemas"]["InboundMessage"] & {
+        readonly InboundMessageDetail: components["schemas"]["InboundMessage"] & components["schemas"]["MessageContent"] & {
             readonly attachments: readonly components["schemas"]["InboundAttachment"][];
-            /** Format: uri */
+            /** @constant */
+            readonly content_variant: "received";
+            /**
+             * Format: uri
+             * @deprecated
+             * @description URL S3 pré-assinada mantida temporariamente para compatibilidade; use raw_message_api_path.
+             */
             readonly raw_message_url?: string;
+            readonly spf_result?: components["schemas"]["SPFAuthenticationResult"];
+            /** @description Indica alinhamento SPF com o domínio From para DMARC; nulo quando não foi possível avaliar. */
+            readonly spf_aligned?: boolean | null;
+            readonly dkim_result?: components["schemas"]["DKIMAuthenticationResult"];
+            /** @description Indica alinhamento de ao menos uma assinatura DKIM aprovada com o domínio From; nulo quando não foi possível avaliar. */
+            readonly dkim_aligned?: boolean | null;
+            readonly dmarc_result?: components["schemas"]["DMARCAuthenticationResult"];
+            /** @description Disposição calculada para esta avaliação DMARC, separada do resultado pass/fail. */
+            readonly dmarc_disposition?: ("none" | "quarantine" | "reject") | null;
+            /** @description Instante em que a autenticação foi avaliada no recebimento; nulo em registros legados ou não avaliados. */
+            readonly authentication_evaluated_at?: components["schemas"]["Timestamp"] | null;
         };
         readonly Message: {
             readonly id: components["schemas"]["UUID"];
@@ -1282,6 +1738,32 @@ export interface components {
             readonly first_clicked_at?: components["schemas"]["Timestamp"];
             readonly last_error?: string | null;
         };
+        readonly MessageContent: {
+            /** @description HTML sanitizado no servidor e limitado a 1 MiB decodificado; consumidores ainda devem renderizá-lo como conteúdo não confiável. A prévia MIME só é processada para objetos de até 2 MiB. */
+            readonly body_html?: string;
+            /** @description Corpo de texto decodificado e limitado a 1 MiB para visualização. */
+            readonly body_plain?: string;
+            /**
+             * @description `available` quando há corpo compatível; `not_present` quando o MIME válido não contém corpo de texto; `unavailable` quando o objeto não pode ser lido ou decodificado com segurança.
+             * @enum {string}
+             */
+            readonly content_status?: "available" | "not_present" | "unavailable";
+            /** @description Rota relativa autenticada; ausente quando a mensagem não possui referência de conteúdo armazenado. */
+            readonly raw_message_api_path?: string;
+        };
+        readonly MessageDetail: components["schemas"]["Message"] & components["schemas"]["MessageContent"] & {
+            /** @constant */
+            readonly content_variant?: "submitted";
+        };
+        /** @enum {string} */
+        readonly SPFAuthenticationResult: "pass" | "fail" | "softfail" | "neutral" | "none" | "temperror" | "permerror" | "not_evaluated";
+        /** @enum {string} */
+        readonly DKIMAuthenticationResult: "pass" | "fail" | "policy" | "neutral" | "none" | "temperror" | "permerror" | "not_evaluated";
+        /**
+         * @description Os valores quarantine e reject são mantidos para compatibilidade de clientes antigos; novas avaliações retornam pass/fail e informam a política em dmarc_disposition.
+         * @enum {string}
+         */
+        readonly DMARCAuthenticationResult: "pass" | "fail" | "quarantine" | "reject" | "none" | "temperror" | "permerror" | "not_evaluated";
         readonly MessageList: {
             readonly messages: readonly components["schemas"]["Message"][];
         };
@@ -1485,24 +1967,114 @@ export interface components {
         };
         readonly WebhookEndpoint: {
             readonly id: components["schemas"]["UUID"];
-            /** Format: uri */
+            /**
+             * Format: uri
+             * @description URL HTTPS pública, sem credenciais ou fragmento; destinos privados são rejeitados.
+             */
             readonly url: string;
-            readonly event_types: readonly string[];
+            readonly event_types: readonly components["schemas"]["WebhookSubscribableEventType"][];
             readonly enabled: boolean;
             readonly max_attempts: number;
+            readonly consecutive_failures: number;
+            readonly disabled_at: components["schemas"]["Timestamp"] | null;
+            readonly secret_rotated_at: components["schemas"]["Timestamp"] | null;
+            /** Format: int64 */
+            readonly version: number;
             readonly created_at: components["schemas"]["Timestamp"];
+            readonly updated_at: components["schemas"]["Timestamp"];
         };
+        /** @enum {string} */
+        readonly WebhookSubscribableEventType: "queued" | "sent" | "delivered" | "deferred" | "soft_bounce" | "hard_bounce" | "complaint" | "open" | "click" | "unsubscribe" | "rejected" | "failed" | "inbound.received";
+        readonly WebhookDeliveryEventType: components["schemas"]["WebhookSubscribableEventType"] | "webhook.test";
         readonly WebhookList: {
             readonly webhooks: readonly components["schemas"]["WebhookEndpoint"][];
         };
         readonly CreateWebhookRequest: {
             /** Format: uri */
             readonly url: string;
-            readonly event_types: readonly string[];
+            readonly event_types: readonly components["schemas"]["WebhookSubscribableEventType"][];
         };
         readonly CreateWebhookResponse: {
             readonly endpoint: components["schemas"]["WebhookEndpoint"];
+            /** @description Secret retornado uma única vez; não é recuperável por operações de leitura. */
             readonly secret: string;
+        };
+        readonly UpdateWebhookRequest: {
+            /** Format: int64 */
+            readonly expected_version: number;
+            readonly enabled?: boolean;
+            readonly event_types?: readonly components["schemas"]["WebhookSubscribableEventType"][];
+            readonly max_attempts?: number;
+        };
+        readonly EmptyObjectRequest: Record<string, never>;
+        /**
+         * @description `pending` agrega os estados internos em fila, processamento e retry.
+         *     `failed` também representa entregas canceladas porque o endpoint deixou
+         *     de estar disponível.
+         * @enum {string}
+         */
+        readonly WebhookDeliveryStatus: "pending" | "delivered" | "failed";
+        readonly WebhookDeliverySummary: {
+            readonly delivery_id: components["schemas"]["UUID"];
+            readonly event_type: components["schemas"]["WebhookDeliveryEventType"];
+            readonly status: components["schemas"]["WebhookDeliveryStatus"];
+            readonly attempt_count: number;
+            readonly created_at: components["schemas"]["Timestamp"];
+            readonly updated_at: components["schemas"]["Timestamp"];
+            readonly next_retry_at: components["schemas"]["Timestamp"] | null;
+            readonly delivered_at: components["schemas"]["Timestamp"] | null;
+            readonly last_response_code: number | null;
+            readonly last_duration_ms: number | null;
+            readonly is_test: boolean;
+            readonly replay_of_delivery_id: components["schemas"]["UUID"] | null;
+        };
+        readonly WebhookDeliveryPage: {
+            readonly data: readonly components["schemas"]["WebhookDeliverySummary"][];
+            /** @description Cursor opaco para a página seguinte; ausente na última página. */
+            readonly next_cursor?: string;
+        };
+        readonly WebhookDeliveryAttempt: {
+            readonly attempt: number;
+            /** @description Estado persistido da tentativa; consumidores não devem inferir o estado agregado por este campo. */
+            readonly status: string;
+            readonly response_code: number | null;
+            readonly duration_ms: number | null;
+            readonly attempted_at: components["schemas"]["Timestamp"];
+            readonly next_retry_at: components["schemas"]["Timestamp"] | null;
+        };
+        /**
+         * @description Visão por lista de permissão. Campos arbitrários do payload original,
+         *     destinatários, conteúdo e URLs nunca são retornados.
+         */
+        readonly WebhookPayloadRedacted: {
+            readonly event_type?: components["schemas"]["WebhookDeliveryEventType"];
+            readonly message_id?: components["schemas"]["UUID"];
+            readonly inbound_message_id?: components["schemas"]["UUID"];
+            readonly occurred_at?: components["schemas"]["Timestamp"];
+            readonly test?: boolean;
+        };
+        readonly WebhookDeliveryDetail: components["schemas"]["WebhookDeliverySummary"] & {
+            readonly payload_redacted: components["schemas"]["WebhookPayloadRedacted"];
+            readonly attempts: readonly components["schemas"]["WebhookDeliveryAttempt"][];
+        };
+        readonly WebhookOperationAccepted: {
+            readonly delivery_id: components["schemas"]["UUID"];
+            /** @constant */
+            readonly status: "queued";
+            readonly created_at: components["schemas"]["Timestamp"];
+        };
+        readonly WebhookTestAccepted: components["schemas"]["WebhookOperationAccepted"] & {
+            /** @constant */
+            readonly is_test: true;
+        };
+        readonly WebhookReplayAccepted: components["schemas"]["WebhookOperationAccepted"] & {
+            readonly source_delivery_id: components["schemas"]["UUID"];
+        };
+        readonly RotateWebhookSecretResponse: {
+            readonly endpoint: components["schemas"]["WebhookEndpoint"];
+            /** @description Novo secret; presente somente na primeira resposta da rotação. */
+            readonly secret?: string;
+            readonly rotated_at: components["schemas"]["Timestamp"];
         };
     };
     responses: {
@@ -1571,6 +2143,24 @@ export interface components {
                 readonly "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description payload_too_large */
+        readonly PayloadTooLarge: {
+            headers: {
+                readonly [name: string]: unknown;
+            };
+            content: {
+                readonly "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description service_unavailable */
+        readonly ServiceUnavailable: {
+            headers: {
+                readonly [name: string]: unknown;
+            };
+            content: {
+                readonly "application/json": components["schemas"]["Error"];
+            };
+        };
     };
     parameters: {
         /** @description Cursor RFC 3339 exclusivo; ausente ou inválido usa um instante futuro. */
@@ -1583,6 +2173,11 @@ export interface components {
         /** @description Valores não positivos ou inválidos usam 14; valores acima de 90 são limitados a 90. */
         readonly Days: number;
         readonly IdempotencyKey: string;
+        /**
+         * @description Identifica uma operação de escrita. Deve ser reutilizada apenas ao
+         *     repetir exatamente a mesma solicitação; uso conflitante retorna `409`.
+         */
+        readonly IdempotencyKeyRequired: string;
     };
     requestBodies: never;
     headers: never;
@@ -1636,6 +2231,8 @@ export interface operations {
             /** @description Sucesso */
             readonly 201: {
                 headers: {
+                    /** @description Impede cache da resposta que contém o secret inicial. */
+                    readonly "Cache-Control"?: "private, no-store";
                     readonly [name: string]: unknown;
                 };
                 content: {
@@ -2582,6 +3179,108 @@ export interface operations {
             };
         };
     };
+    readonly postStatusSubscriptions: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["StatusSubscriptionRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Solicitação aceita; a resposta não revela se o e-mail já estava inscrito. */
+            readonly 202: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            /** @description A rota só é publicada no host status.viapost.io. */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postStatusSubscriptionsConfirm: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["StatusSubscriptionTokenRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Confirmação processada de forma idempotente. */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            /** @description A rota só é publicada no host status.viapost.io. */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postStatusSubscriptionsUnsubscribe: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["StatusSubscriptionTokenRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Cancelamento processado de forma idempotente. */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            /** @description A rota só é publicada no host status.viapost.io. */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
     readonly getInboundMessages: {
         readonly parameters: {
             readonly query?: {
@@ -2645,6 +3344,42 @@ export interface operations {
             readonly 409: components["responses"]["Conflict"];
             readonly 429: components["responses"]["TooManyRequests"];
             readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getInboundMessagesIdRaw: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Arquivo `.eml` recebido. */
+            readonly 200: {
+                headers: {
+                    /** @description Impede armazenamento de conteúdo sensível por caches compartilhados ou privados. */
+                    readonly "Cache-Control"?: "private, no-store";
+                    /** @description Força download com nome de arquivo derivado exclusivamente do ID da mensagem. */
+                    readonly "Content-Disposition"?: string;
+                    /** @description Impede MIME sniffing no navegador. */
+                    readonly "X-Content-Type-Options"?: "nosniff";
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "message/rfc822": string;
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+            readonly 503: components["responses"]["ServiceUnavailable"];
         };
     };
     readonly getMessages: {
@@ -2791,7 +3526,7 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["Message"];
+                    readonly "application/json": components["schemas"]["MessageDetail"];
                 };
             };
             readonly 400: components["responses"]["ValidationError"];
@@ -2801,6 +3536,42 @@ export interface operations {
             readonly 409: components["responses"]["Conflict"];
             readonly 429: components["responses"]["TooManyRequests"];
             readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getMessagesIdRaw: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Arquivo `.eml` submetido. */
+            readonly 200: {
+                headers: {
+                    /** @description Impede armazenamento de conteúdo sensível por caches compartilhados ou privados. */
+                    readonly "Cache-Control"?: "private, no-store";
+                    /** @description Força download com nome de arquivo derivado exclusivamente do ID da mensagem. */
+                    readonly "Content-Disposition"?: string;
+                    /** @description Impede MIME sniffing no navegador. */
+                    readonly "X-Content-Type-Options"?: "nosniff";
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "message/rfc822": string;
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+            readonly 503: components["responses"]["ServiceUnavailable"];
         };
     };
     readonly getMessagesIdEvents: {
@@ -3000,12 +3771,14 @@ export interface operations {
         };
         readonly requestBody?: never;
         readonly responses: {
-            /** @description Sucesso */
-            readonly 204: {
+            /** @description Lista paginada de contatos do segmento */
+            readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    readonly "application/json": components["schemas"]["ContactList"];
+                };
             };
             readonly 400: components["responses"]["ValidationError"];
             readonly 401: components["responses"]["Unauthorized"];
@@ -3097,6 +3870,199 @@ export interface operations {
                 };
                 content: {
                     readonly "application/json": components["schemas"]["SendResult"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getSuppressions: {
+        readonly parameters: {
+            readonly query?: {
+                /** @description Cursor opaco retornado em `next_cursor`. */
+                readonly cursor?: string;
+                readonly limit?: number;
+                /** @description Busca parcial sem diferenciação de maiúsculas no endereço. */
+                readonly search?: string;
+                readonly reason?: components["schemas"]["SuppressionReason"];
+                readonly state?: "active" | "expired" | "released" | "all";
+                readonly origin?: components["schemas"]["SuppressionOrigin"];
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Página de supressões em ordem decrescente de atualização. */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["SuppressionList"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postSuppressions: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CreateSuppressionRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Supressão criada ou reativada. */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Suppression"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postSuppressionsImport: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "text/csv": string;
+            };
+        };
+        readonly responses: {
+            /** @description Importação concluída atomicamente. */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["SuppressionImportResult"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 413: components["responses"]["PayloadTooLarge"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getSuppressionsExport: {
+        readonly parameters: {
+            readonly query?: {
+                readonly search?: string;
+                readonly reason?: components["schemas"]["SuppressionReason"];
+                readonly state?: "active" | "expired" | "released" | "all";
+                readonly origin?: components["schemas"]["SuppressionOrigin"];
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Arquivo CSV UTF-8. */
+            readonly 200: {
+                headers: {
+                    readonly "Content-Disposition"?: string;
+                    readonly "Cache-Control"?: "private, no-store";
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "text/csv": string;
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getSuppressionsId: {
+        readonly parameters: {
+            readonly query?: {
+                /** @description Cursor opaco para carregar eventos de auditoria anteriores. */
+                readonly history_cursor?: string;
+                /** @description Quantidade de eventos de auditoria por página. */
+                readonly history_limit?: number;
+            };
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Supressão e eventos de auditoria em ordem cronológica. */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["SuppressionDetail"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postSuppressionsIdRelease: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["ReleaseSuppressionRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Supressão liberada. */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Suppression"];
                 };
             };
             readonly 400: components["responses"]["ValidationError"];
@@ -3696,6 +4662,222 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content?: never;
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly patchWebhooksId: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["UpdateWebhookRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Endpoint atualizado */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WebhookEndpoint"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getWebhooksIdDeliveries: {
+        readonly parameters: {
+            readonly query?: {
+                /** @description Cursor opaco retornado em `next_cursor`. */
+                readonly cursor?: string;
+                readonly limit?: number;
+                readonly status?: components["schemas"]["WebhookDeliveryStatus"];
+                readonly event_type?: components["schemas"]["WebhookDeliveryEventType"];
+            };
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Página de entregas */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WebhookDeliveryPage"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getWebhooksIdDeliveriesDeliveryId: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+                readonly delivery_id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Detalhe seguro da entrega */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WebhookDeliveryDetail"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postWebhooksIdDeliveriesDeliveryIdReplay: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header: {
+                /**
+                 * @description Identifica uma operação de escrita. Deve ser reutilizada apenas ao
+                 *     repetir exatamente a mesma solicitação; uso conflitante retorna `409`.
+                 */
+                readonly "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            readonly path: {
+                readonly id: string;
+                readonly delivery_id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["EmptyObjectRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Reenvio persistido e aceito para processamento */
+            readonly 202: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WebhookReplayAccepted"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postWebhooksIdTest: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header: {
+                /**
+                 * @description Identifica uma operação de escrita. Deve ser reutilizada apenas ao
+                 *     repetir exatamente a mesma solicitação; uso conflitante retorna `409`.
+                 */
+                readonly "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["EmptyObjectRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Teste persistido e aceito para processamento */
+            readonly 202: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WebhookTestAccepted"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postWebhooksIdSecretRotate: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header: {
+                /**
+                 * @description Identifica uma operação de escrita. Deve ser reutilizada apenas ao
+                 *     repetir exatamente a mesma solicitação; uso conflitante retorna `409`.
+                 */
+                readonly "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["EmptyObjectRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Secret rotacionado ou metadados da mesma rotação idempotente */
+            readonly 200: {
+                headers: {
+                    /** @description Impede cache da resposta que pode conter o secret. */
+                    readonly "Cache-Control"?: "private, no-store";
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["RotateWebhookSecretResponse"];
+                };
             };
             readonly 400: components["responses"]["ValidationError"];
             readonly 401: components["responses"]["Unauthorized"];

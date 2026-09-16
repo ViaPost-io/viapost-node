@@ -1,84 +1,186 @@
-name: Publish to npm
+name: Publish SDK
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: Existing release tag; must equal v + package.json version
-        required: true
-        type: string
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: read
 
+concurrency:
+  group: sdk-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   verify-and-pack:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
+          cache: npm
           package-manager-cache: false
-      - name: Require the tagged commit to be on main
+      - name: Require exact tag on main and matching package metadata
+        env:
+          EVENT_SHA: ${{ github.sha }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          set -euo pipefail
+          git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          test "$(git rev-parse HEAD)" = "$EVENT_SHA"
+          test "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" = "$EVENT_SHA"
           git fetch --no-tags origin main
           git merge-base --is-ancestor HEAD origin/main
+          node scripts/check-release-tag.mjs "$RELEASE_TAG"
+          test "$(node -p "require('./package.json').name")" = "@viapost-io/sdk"
+          test "$(node -p "require('./package.json').publishConfig.registry")" = "https://npm.pkg.github.com"
       - run: npm ci
-      - name: Verify release tag matches package version
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: node scripts/check-release-tag.mjs "$RELEASE_TAG"
       - run: npm run check:contract
       - run: npm run check:generated
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:coverage
       - run: npm run test:package
-      - name: Build inert release tarball
+      - run: npm audit --audit-level=high
+      - name: Build inert release tarball and checksum
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          npm pack --ignore-scripts
-          mv viapost-sdk-*.tgz package.tgz
-          sha256sum package.tgz > package.sha256
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          asset_name="viapost-sdk-${version}.tgz"
+          mkdir -p dist-release
+          pack_result="$(npm pack --ignore-scripts --json --pack-destination dist-release)"
+          packed_name="$(node -e 'const result = JSON.parse(process.argv[1]); if (result.length !== 1 || !result[0].filename) process.exit(1); process.stdout.write(result[0].filename)' "$pack_result")"
+          mv "dist-release/${packed_name}" "dist-release/${asset_name}"
+          (cd dist-release && sha256sum -- "$asset_name" > package.sha256)
+          chmod -R a-w dist-release
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: npm-package
-          path: |
-            package.tgz
-            package.sha256
+          path: dist-release/*
           if-no-files-found: error
           retention-days: 1
 
-  publish:
+  attest:
     needs: verify-and-pack
     runs-on: ubuntu-latest
-    environment: npm
+    timeout-minutes: 10
     permissions:
+      actions: read
+      attestations: write
       contents: read
       id-token: write
     steps:
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: npm-package
-      - name: Verify artifact integrity and release version
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: |
-          sha256sum -c package.sha256
-          package_version="$(tar -xOf package.tgz package/package.json | jq -r .version)"
-          test "$RELEASE_TAG" = "v$package_version"
+          path: dist-release
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist-release/*
+
+  publish-package:
+    needs: [verify-and-pack, attest]
+    runs-on: ubuntu-latest
+    environment: npm
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: npm-package
+          path: dist-release
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
+          registry-url: https://npm.pkg.github.com
+          scope: "@viapost-io"
           package-manager-cache: false
-      - name: Publish verified tarball without lifecycle scripts
-        run: npm publish package.tgz --ignore-scripts --provenance --access public
+      - name: Publish the verified tarball idempotently
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          (cd dist-release && sha256sum --check package.sha256)
+          mapfile -t tarballs < <(find dist-release -maxdepth 1 -type f -name '*.tgz' -print)
+          test "${#tarballs[@]}" -eq 1
+          tarball="${tarballs[0]}"
+          metadata="$(tar -xOf "$tarball" package/package.json)"
+          package_name="$(printf '%s' "$metadata" | node -e 'const fs = require("node:fs"); process.stdout.write(JSON.parse(fs.readFileSync(0, "utf8")).name)')"
+          package_version="$(printf '%s' "$metadata" | node -e 'const fs = require("node:fs"); process.stdout.write(JSON.parse(fs.readFileSync(0, "utf8")).version)')"
+          test "$package_name" = "@viapost-io/sdk"
+          test "$RELEASE_TAG" = "v$package_version"
+          local_integrity="sha512-$(openssl dgst -sha512 -binary "$tarball" | openssl base64 -A)"
+
+          set +e
+          published_integrity="$(npm view "${package_name}@${package_version}" dist.integrity --registry=https://npm.pkg.github.com 2>npm-view.err)"
+          view_status=$?
+          set -e
+          if [[ "$view_status" -eq 0 ]]; then
+            test "$published_integrity" = "$local_integrity"
+            exit 0
+          fi
+          if ! grep -Eq 'E404|404 Not Found' npm-view.err; then
+            cat npm-view.err >&2
+            exit "$view_status"
+          fi
+
+          npm publish "$tarball" --ignore-scripts
+          published_integrity="$(npm view "${package_name}@${package_version}" dist.integrity --registry=https://npm.pkg.github.com)"
+          test "$published_integrity" = "$local_integrity"
+
+  release:
+    needs: [verify-and-pack, attest, publish-package]
+    runs-on: ubuntu-latest
+    environment: npm
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: npm-package
+          path: dist-release
+      - name: Publish verified tarball and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          (cd dist-release && sha256sum --check package.sha256)
+          expected_assets="$(for file in dist-release/*; do basename "$file"; done | LC_ALL=C sort)"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            release_is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft')"
+            if [[ "$release_is_draft" == false ]]; then
+              actual_assets="$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | LC_ALL=C sort)"
+              test "$actual_assets" = "$expected_assets"
+              released="$(mktemp -d)"
+              trap 'rm -rf -- "$released"' EXIT
+              gh release download "$RELEASE_TAG" --dir "$released"
+              cmp dist-release/package.sha256 "$released/package.sha256"
+              (cd "$released" && sha256sum --check package.sha256)
+              exit 0
+            fi
+          else
+            gh release create "$RELEASE_TAG" --draft --verify-tag --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" dist-release/* --clobber
+          actual_assets="$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | LC_ALL=C sort)"
+          test "$actual_assets" = "$expected_assets"
+          gh release edit "$RELEASE_TAG" --draft=false --latest

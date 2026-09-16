@@ -1,4 +1,4 @@
-import { ViaPost } from "@viapost/sdk";
+import { ViaPost } from "@viapost-io/sdk";
 
 if (!process.env.VIAPOST_API_KEY) {
   throw new Error("Set VIAPOST_API_KEY before running this example");

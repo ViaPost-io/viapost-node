@@ -55,8 +55,9 @@ test("sends Bearer authentication, user agent, and a normalized URL", async () =
   assert.equal(captured.input, "https://example.test/api/v1/messages?cursor=2026-01-02T03%3A04%3A05Z&limit=25&status=delivered");
   const headers = new Headers(captured.init.headers);
   assert.equal(headers.get("authorization"), "Bearer example-api-key");
-  assert.equal(headers.get("user-agent"), `@viapost/sdk/${VERSION}`);
+  assert.equal(headers.get("user-agent"), `@viapost-io/sdk/${VERSION}`);
   assert.equal(headers.get("accept"), "application/json");
+  assert.equal(captured.init.redirect, "error");
 });
 
 test("omits undefined query parameters", async () => {
@@ -290,6 +291,8 @@ test("validates idempotency keys using the API UTF-8 and Unicode rules", async (
   await assert.rejects(client.send.create(sendInput, { idempotencyKey: "é".repeat(128) }), /255 bytes/);
   await assert.rejects(client.send.create(sendInput, { idempotencyKey: "prefix\u0000suffix" }), /control or format/);
   await assert.rejects(client.send.create(sendInput, { idempotencyKey: "prefix\u200Esuffix" }), /control or format/);
+  await assert.rejects(client.send.create(sendInput, { idempotencyKey: "emoji-🔑" }), /visible ASCII/);
+  await assert.rejects(client.send.create(sendInput, { idempotencyKey: "accent-é" }), /visible ASCII/);
 });
 
 test("rejects empty and URL-normalizing path parameters", async () => {
@@ -297,6 +300,258 @@ test("rejects empty and URL-normalizing path parameters", async () => {
   assert.throws(() => client.messages.retrieve(""), /messageId/);
   assert.throws(() => client.messages.retrieve("."), /messageId/);
   assert.throws(() => client.messages.retrieve(".."), /messageId/);
+});
+
+test("retrieves the RFC 822 source for outbound and inbound messages", async () => {
+  const calls = [];
+  const encodedSource = Uint8Array.from([0x46, 0x72, 0x6f, 0x6d, 0x3a, 0x20, 0xff, 0x0d, 0x0a]);
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async (input, init) => {
+      calls.push([init.method, new URL(input).pathname, new Headers(init.headers).get("accept")]);
+      return new Response(encodedSource, { headers: { "content-type": "message/rfc822" } });
+    },
+  });
+
+  assert.deepEqual(await client.messages.raw("m/id"), encodedSource);
+  assert.deepEqual(await client.inboundMessages.raw("i/id"), encodedSource);
+  assert.deepEqual(calls, [
+    ["GET", "/v1/messages/m%2Fid/raw", "message/rfc822"],
+    ["GET", "/v1/inbound-messages/i%2Fid/raw", "message/rfc822"],
+  ]);
+});
+
+test("returns typed empty payloads for explicit byte and text responses", async () => {
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async () => new Response(null, { status: 200 }),
+  });
+
+  assert.deepEqual(await client.messages.raw("message-id"), new Uint8Array());
+  assert.equal(await client.suppressions.exportCsv(), "");
+});
+
+test("accepts an inbound RFC 822 response above the previous 10 MiB limit", async () => {
+  const source = new Uint8Array(11 * 1024 * 1024);
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async () => new Response(source, { headers: { "content-type": "message/rfc822" } }),
+  });
+
+  assert.equal((await client.inboundMessages.raw("message-id")).byteLength, source.byteLength);
+});
+
+test("maps inbound message list and detail operations", async () => {
+  const calls = [];
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async (input, init) => {
+      calls.push([init.method, `${new URL(input).pathname}${new URL(input).search}`]);
+      return json({ data: [] });
+    },
+  });
+
+  await client.inboundMessages.list({ period: "7d", has_attachments: true });
+  await client.inboundMessages.retrieve("i/id");
+  assert.deepEqual(calls, [
+    ["GET", "/v1/inbound-messages?period=7d&has_attachments=true"],
+    ["GET", "/v1/inbound-messages/i%2Fid"],
+  ]);
+});
+
+test("maps the contacts resource CRUD operations", async () => {
+  const calls = [];
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async (input, init) => {
+      calls.push([init.method, `${new URL(input).pathname}${new URL(input).search}`]);
+      return json({ data: [] });
+    },
+  });
+
+  await client.contacts.list({ search: "person", limit: 10 });
+  await client.contacts.create({ email: "person@example.com" });
+  await client.contacts.retrieve("c/id");
+  await client.contacts.update("c/id", { first_name: "Person" });
+  await client.contacts.delete("c/id");
+  assert.deepEqual(calls, [
+    ["GET", "/v1/contacts?search=person&limit=10"],
+    ["POST", "/v1/contacts"],
+    ["GET", "/v1/contacts/c%2Fid"],
+    ["PATCH", "/v1/contacts/c%2Fid"],
+    ["DELETE", "/v1/contacts/c%2Fid"],
+  ]);
+});
+
+test("maps custom event definitions and event delivery", async () => {
+  const calls = [];
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async (input, init) => {
+      calls.push([init.method, new URL(input).pathname]);
+      return json({ data: [] });
+    },
+  });
+
+  await client.events.list();
+  await client.events.create({ name: "contact.created" });
+  await client.events.send({ name: "contact.created", contact_id: "contact-id" });
+  await client.events.update("e/id", { description: "Updated" });
+  await client.events.delete("e/id");
+  assert.deepEqual(calls, [
+    ["GET", "/v1/events"],
+    ["POST", "/v1/events"],
+    ["POST", "/v1/events/send"],
+    ["PATCH", "/v1/events/e%2Fid"],
+    ["DELETE", "/v1/events/e%2Fid"],
+  ]);
+});
+
+test("maps segments and segment membership operations", async () => {
+  const calls = [];
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async (input, init) => {
+      calls.push([init.method, `${new URL(input).pathname}${new URL(input).search}`]);
+      return json({ data: [] });
+    },
+  });
+
+  await client.segments.list({ search: "vip" });
+  await client.segments.create({ name: "VIP" });
+  await client.segments.retrieve("s/id");
+  await client.segments.update("s/id", { name: "VIP 2" });
+  await client.segments.delete("s/id");
+  const segmentContacts = await client.segments.listContacts("s/id", { limit: 5 });
+  assert.deepEqual(segmentContacts, { data: [] });
+  await client.segments.addContact("s/id", { contact_id: "contact-id" });
+  await client.segments.removeContact("s/id", "c/id");
+  assert.deepEqual(calls, [
+    ["GET", "/v1/segments?search=vip"],
+    ["POST", "/v1/segments"],
+    ["GET", "/v1/segments/s%2Fid"],
+    ["PATCH", "/v1/segments/s%2Fid"],
+    ["DELETE", "/v1/segments/s%2Fid"],
+    ["GET", "/v1/segments/s%2Fid/contacts?limit=5"],
+    ["POST", "/v1/segments/s%2Fid/contacts"],
+    ["DELETE", "/v1/segments/s%2Fid/contacts/c%2Fid"],
+  ]);
+});
+
+test("maps suppression lifecycle and preserves CSV transport semantics", async () => {
+  const calls = [];
+  const csv = "email,reason,expires_at,note\nperson@example.com,manual,,test\n";
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async (input, init) => {
+      const url = new URL(input);
+      calls.push({
+        method: init.method,
+        path: `${url.pathname}${url.search}`,
+        accept: new Headers(init.headers).get("accept"),
+        contentType: new Headers(init.headers).get("content-type"),
+        body: init.body,
+      });
+      if (url.pathname.endsWith("/export")) {
+        return new Response(csv, { headers: { "content-type": "text/csv" } });
+      }
+      return json({ data: [] });
+    },
+  });
+
+  await client.suppressions.list({ state: "active" });
+  await client.suppressions.create({ email: "person@example.com", reason: "manual" });
+  await client.suppressions.retrieve("s/id", { history_limit: 10 });
+  await client.suppressions.release("s/id", { note: "Allowed" });
+  await client.suppressions.importCsv(csv);
+  assert.equal(await client.suppressions.exportCsv({ state: "all" }), csv);
+
+  assert.deepEqual(calls.map(({ method, path }) => [method, path]), [
+    ["GET", "/v1/suppressions?state=active"],
+    ["POST", "/v1/suppressions"],
+    ["GET", "/v1/suppressions/s%2Fid?history_limit=10"],
+    ["POST", "/v1/suppressions/s%2Fid/release"],
+    ["POST", "/v1/suppressions/import"],
+    ["GET", "/v1/suppressions/export?state=all"],
+  ]);
+  assert.equal(calls[4].contentType, "text/csv; charset=utf-8");
+  assert.equal(calls[4].body, csv);
+  assert.equal(calls[5].accept, "text/csv");
+});
+
+test("rejects suppression CSV input above the public 2 MiB contract limit", async () => {
+  let called = false;
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async () => {
+      called = true;
+      return json({});
+    },
+  });
+
+  assert.throws(() => client.suppressions.importCsv("é".repeat(1024 * 1024 + 1)), /2 MiB/);
+  assert.equal(called, false);
+});
+
+test("maps theme collection operations", async () => {
+  const calls = [];
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async (input, init) => {
+      calls.push([init.method, new URL(input).pathname]);
+      return json({ data: [] });
+    },
+  });
+
+  await client.themes.list();
+  await client.themes.create({ name: "Brand", variables: {} });
+  await client.themes.delete("t/id");
+  assert.deepEqual(calls, [
+    ["GET", "/v1/themes"],
+    ["POST", "/v1/themes"],
+    ["DELETE", "/v1/themes/t%2Fid"],
+  ]);
+});
+
+test("maps advanced webhook operations and sends required idempotency keys", async () => {
+  const calls = [];
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async (input, init) => {
+      calls.push({
+        method: init.method,
+        path: `${new URL(input).pathname}${new URL(input).search}`,
+        idempotencyKey: new Headers(init.headers).get("idempotency-key"),
+        body: init.body,
+      });
+      return json({ data: [] });
+    },
+  });
+
+  await client.webhooks.update("w/id", { active: true });
+  await client.webhooks.deliveries("w/id", { status: "failed" });
+  await client.webhooks.delivery("w/id", "d/id");
+  await client.webhooks.replay("w/id", "d/id", { idempotencyKey: "replay-1" });
+  await client.webhooks.test("w/id", { idempotencyKey: "test-1" });
+  await client.webhooks.rotateSecret("w/id", { idempotencyKey: "rotate-1" });
+
+  assert.deepEqual(calls.map(({ method, path }) => [method, path]), [
+    ["PATCH", "/v1/webhooks/w%2Fid"],
+    ["GET", "/v1/webhooks/w%2Fid/deliveries?status=failed"],
+    ["GET", "/v1/webhooks/w%2Fid/deliveries/d%2Fid"],
+    ["POST", "/v1/webhooks/w%2Fid/deliveries/d%2Fid/replay"],
+    ["POST", "/v1/webhooks/w%2Fid/test"],
+    ["POST", "/v1/webhooks/w%2Fid/secret/rotate"],
+  ]);
+  assert.deepEqual(calls.slice(3).map(({ idempotencyKey }) => idempotencyKey), ["replay-1", "test-1", "rotate-1"]);
+  assert.deepEqual(calls.slice(3).map(({ body }) => body), ["{}", "{}", "{}"]);
+});
+
+test("validates the required idempotency key on every advanced webhook write", async () => {
+  const client = new ViaPost({ apiKey: "test", fetch: async () => json({}) });
+  assert.throws(() => client.webhooks.replay("w", "d", { idempotencyKey: "" }), /between 1 and 255 bytes/);
+  assert.throws(() => client.webhooks.test("w", { idempotencyKey: "x".repeat(256) }), /255 bytes/);
+  assert.throws(() => client.webhooks.rotateSecret("w", { idempotencyKey: "bad\u200Ekey" }), /control or format/);
 });
 
 test("does not arm a request timeout when JSON serialization fails", async () => {
