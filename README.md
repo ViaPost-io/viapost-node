@@ -13,7 +13,7 @@ personal access token (classic) that has `read:packages`, then install the exact
 
 ```bash
 npm login --scope=@viapost-io --auth-type=legacy --registry=https://npm.pkg.github.com
-npm install @viapost-io/sdk@0.2.1
+npm install @viapost-io/sdk@0.3.0
 ```
 
 Use your GitHub username when prompted and the token as the password. Keep the repository `.npmrc`
@@ -27,7 +27,7 @@ For anonymous installation, use the exact checksummed tarball attached to the pu
 Release:
 
 ```bash
-npm install https://github.com/ViaPost-io/viapost-node/releases/download/v0.2.1/viapost-sdk-0.2.1.tgz
+npm install https://github.com/ViaPost-io/viapost-node/releases/download/v0.3.0/viapost-sdk-0.3.0.tgz
 ```
 
 The Release also contains `package.sha256`, and both files have GitHub artifact attestations.
@@ -88,8 +88,8 @@ All request/response models come from the published OpenAPI 3.1 contract. Advanc
 import its generated `paths`, `operations`, and `components` types from `@viapost-io/sdk/openapi`.
 The generated SDK view is API-key-only: session-cookie and CSRF details are intentionally omitted.
 
-The v0.2.1 snapshot has SHA-256
-`f1b1fc0f198a2b0b36f0e893515dad191d6bb7d139fcf1e942c036bfa2f5169b`.
+The v0.3.0 snapshot has SHA-256
+`4296cf369c8a2b1e27f215fddc36dbafb4203aa35c509095df1048243b8da847`.
 
 ## Reliability / Confiabilidade
 
