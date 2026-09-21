@@ -3,6 +3,16 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
+## [0.3.0] - 2026-09-21
+
+### Changed
+
+- Synchronize generated public OpenAPI types with the published contract whose
+  snapshot SHA-256 is
+  `4296cf369c8a2b1e27f215fddc36dbafb4203aa35c509095df1048243b8da847`.
+- Release as a pre-1.0 minor version because exported generated types include
+  breaking changes.
+
 ## [0.2.1] - 2026-09-16
 
 ### Fixed
