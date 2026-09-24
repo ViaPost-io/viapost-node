@@ -3,6 +3,13 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic
 versioning.
 
+## [0.4.0] - 2026-09-24
+
+### Changed
+
+- Synchronize generated public OpenAPI types with the current published contract, including
+  deliverability metrics and current custom-event validation constraints.
+
 ## [0.3.0] - 2026-09-21
 
 ### Changed
