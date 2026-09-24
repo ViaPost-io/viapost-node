@@ -88,6 +88,10 @@ export interface SendOptions extends RequestOptions {
   readonly idempotencyKey?: string;
 }
 
+export interface EventSendOptions extends RequestOptions {
+  readonly idempotencyKey?: string;
+}
+
 export interface RequiredIdempotencyOptions extends RequestOptions {
   readonly idempotencyKey: string;
 }

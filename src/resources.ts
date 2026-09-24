@@ -19,6 +19,7 @@ import type {
   EmailTemplate,
   EmailTemplateVersion,
   EngagementResponse,
+  EventSendOptions,
   InboundMessageDetail,
   InboundMessageList,
   MessageDetail,
@@ -130,8 +131,14 @@ export class EventsResource {
   create(input: BodyOf<"postEvents">, options: RequestOptions = {}) {
     return this.http.request<CustomEvent>("POST", "/v1/events", { body: input, ...options });
   }
-  send(input: BodyOf<"postEventsSend">, options: RequestOptions = {}) {
-    return this.http.request<CustomEventDelivery>("POST", "/v1/events/send", { body: input, ...options });
+  send(input: BodyOf<"postEventsSend">, options: EventSendOptions = {}) {
+    const headers = options.idempotencyKey === undefined ? undefined : idempotencyHeaders(options.idempotencyKey);
+    return this.http.request<CustomEventDelivery>("POST", "/v1/events/send", {
+      body: input,
+      ...(headers ? { headers } : {}),
+      ...(options.signal ? { signal: options.signal } : {}),
+      ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
+    });
   }
   update(eventId: string, input: BodyOf<"patchEventsId">, options: RequestOptions = {}) {
     return this.http.request<CustomEvent>("PATCH", `/v1/events/${pathParam("eventId", eventId)}`, {

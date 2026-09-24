@@ -407,6 +407,35 @@ test("maps custom event definitions and event delivery", async () => {
   ]);
 });
 
+test("sets and validates Idempotency-Key for custom event delivery", async () => {
+  let capturedHeaders;
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async (_input, init) => {
+      capturedHeaders = new Headers(init.headers);
+      return json({});
+    },
+  });
+
+  await client.events.send(
+    { name: "contact.created", contact_id: "contact-id" },
+    { idempotencyKey: "event-contact-created-1" },
+  );
+  assert.equal(capturedHeaders.get("idempotency-key"), "event-contact-created-1");
+  assert.throws(
+    () => client.events.send({ name: "contact.created", contact_id: "contact-id" }, { idempotencyKey: "" }),
+    /between 1 and 255 bytes/,
+  );
+  assert.throws(
+    () =>
+      client.events.send(
+        { name: "contact.created", contact_id: "contact-id" },
+        { idempotencyKey: "invalid\u200Ekey" },
+      ),
+    /control or format/,
+  );
+});
+
 test("maps segments and segment membership operations", async () => {
   const calls = [];
   const client = new ViaPost({
