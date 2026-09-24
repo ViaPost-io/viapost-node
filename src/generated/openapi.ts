@@ -779,7 +779,12 @@ export interface paths {
             readonly path?: never;
             readonly cookie?: never;
         };
-        /** GET /v1/messages/metrics */
+        /**
+         * Retorna métricas consolidadas de mensagens e entregabilidade
+         * @description Retorna as métricas atuais e anteriores, séries temporais, agregação por domínio remetente
+         *     e as agregações de entregabilidade. A extensão `deliverability` é aditiva; os campos
+         *     existentes permanecem inalterados.
+         */
         readonly get: operations["getMessagesMetrics"];
         readonly put?: never;
         readonly post?: never;
@@ -1994,12 +1999,22 @@ export interface components {
                 readonly [key: string]: unknown;
             };
         };
+        /** @description Exatamente um identificador efetivo. contact_id null equivale à ausência; email null ou literalmente vazio é aceito somente junto de contact_id válido. Email contendo apenas espaços é rejeitado pela validação do mailbox. */
         readonly SendCustomEventRequest: {
             readonly event: string;
-            readonly contact_id: components["schemas"]["UUID"];
-            readonly properties?: {
+            readonly contact_id?: components["schemas"]["UUID"] | null;
+            /** @description Mailbox simples do contato no tenant ativo, validado pelo serviço após trim, com máximo de 254 bytes; se não existir, cria contato não inscrito. */
+            readonly email?: string | null;
+            /** @description Objeto JSON opcional; máximo de 64 KiB no JSON recebido. Persistido; não inclua segredos ou dados pessoais desnecessários. */
+            readonly payload?: {
                 readonly [key: string]: unknown;
             };
+        } | {
+            readonly contact_id: components["schemas"]["UUID"];
+            readonly email?: null | "";
+        } | {
+            readonly contact_id?: null;
+            readonly email: string;
         };
         readonly CustomEventDelivery: {
             readonly id: components["schemas"]["UUID"];
@@ -2360,6 +2375,61 @@ export interface components {
             readonly opened: number;
             readonly clicked: number;
         };
+        /**
+         * @description Provedor inferido exclusivamente de `recipient_domain` na v1, sem consulta ao MX.
+         *     Domínios personalizados ou não reconhecidos são classificados como `other`.
+         * @enum {string}
+         */
+        readonly DeliverabilityProviderName: "gmail" | "outlook" | "yahoo" | "apple_mail" | "uol" | "other";
+        readonly DeliverabilityProviderMetrics: {
+            readonly provider: components["schemas"]["DeliverabilityProviderName"];
+            /** @description Total terminal em `delivered`, `complained`, `bounced`, `failed` ou `rejected`. */
+            readonly total: number;
+            /** @description Mensagens em `delivered` ou `complained`; reclamações pressupõem entrega anterior. */
+            readonly delivered: number;
+        };
+        /** @enum {string} */
+        readonly DeliverabilityRejectionCause: "soft_bounce" | "hard_bounce" | "policy_block" | "nonexistent_domain" | "other";
+        /**
+         * @description Contagens disjuntas classificadas por estado e código estruturado. `soft_bounce` inclui
+         *     eventos `deferred`. Registros legados sem código estruturado que indiquem ausência de MX
+         *     podem ser classificados como `hard_bounce`; `nonexistent_domain` exige código estruturado.
+         */
+        readonly DeliverabilityRejections: {
+            readonly soft_bounce: number;
+            readonly hard_bounce: number;
+            readonly policy_block: number;
+            readonly nonexistent_domain: number;
+            readonly other: number;
+        };
+        readonly DeliverabilityProblemDomain: {
+            readonly recipient_domain: string;
+            /** @description Volume de mensagens considerado para o domínio de destinatário. */
+            readonly sent: number;
+            /** @description Quantidade classificada como rejeição. */
+            readonly rejected: number;
+            /** @description Categoria de rejeição predominante no domínio. */
+            readonly primary_reason: components["schemas"]["DeliverabilityRejectionCause"];
+        };
+        readonly DeliverabilityVolumeDay: {
+            /**
+             * Format: date
+             * @description Dia civil em UTC.
+             */
+            readonly date: string;
+            readonly sent: number;
+            readonly rejected: number;
+        };
+        readonly DeliverabilityMetrics: {
+            readonly providers: readonly components["schemas"]["DeliverabilityProviderMetrics"][];
+            readonly rejections: components["schemas"]["DeliverabilityRejections"];
+            /** @description Mesmas contagens disjuntas para a janela imediatamente anterior, usada nos deltas. */
+            readonly previous_rejections: components["schemas"]["DeliverabilityRejections"];
+            /** @description Até cinco domínios de destinatário com mais problemas. */
+            readonly problem_domains: readonly components["schemas"]["DeliverabilityProblemDomain"][];
+            /** @description Volume diário agrupado por dia civil em UTC. */
+            readonly volume: readonly components["schemas"]["DeliverabilityVolumeDay"][];
+        };
         readonly MetricsResponse: {
             readonly since: components["schemas"]["Timestamp"];
             readonly until: components["schemas"]["Timestamp"];
@@ -2367,6 +2437,7 @@ export interface components {
             readonly previous: components["schemas"]["MetricsSummary"];
             readonly timeseries: readonly components["schemas"]["MetricsTimeseriesDay"][];
             readonly by_domain: readonly components["schemas"]["DomainMetrics"][];
+            readonly deliverability: components["schemas"]["DeliverabilityMetrics"];
         };
         readonly DynamicSegmentMembershipError: {
             readonly error: {
@@ -3887,7 +3958,10 @@ export interface operations {
     readonly postEventsSend: {
         readonly parameters: {
             readonly query?: never;
-            readonly header?: never;
+            readonly header?: {
+                /** @description Chave opcional por tenant; espaços nas pontas são removidos e valor vazio equivale à ausência. O schema ativo do evento é revalidado antes da consulta à chave, portanto mesmo uma repetição idêntica pode retornar 400 após mudança de schema. Se a validação passar, conteúdo divergente para a mesma chave retorna 409. */
+                readonly "Idempotency-Key"?: string;
+            };
             readonly path?: never;
             readonly cookie?: never;
         };
@@ -4415,6 +4489,7 @@ export interface operations {
             readonly query?: {
                 /** @description Valores não positivos ou inválidos usam 14; valores acima de 90 são limitados a 90. */
                 readonly days?: components["parameters"]["Days"];
+                /** @description Filtra as métricas, inclusive `deliverability`, pelo UUID do domínio remetente. */
                 readonly domain_id?: string;
             };
             readonly header?: never;
@@ -4426,6 +4501,7 @@ export interface operations {
             /** @description Sucesso */
             readonly 200: {
                 headers: {
+                    readonly "Cache-Control"?: "private, no-store";
                     readonly [name: string]: unknown;
                 };
                 content: {
