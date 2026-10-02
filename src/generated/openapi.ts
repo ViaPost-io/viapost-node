@@ -757,11 +757,12 @@ export interface paths {
         };
         /**
          * Lista a timeline tenant-wide de eventos de mensagens
-         * @description Primeira fatia da timeline unificada: agrega, do mais recente para o mais antigo, somente
-         *     eventos outbound de entrega e tracking persistidos para o tenant autenticado. Não inclui
-         *     mensagens inbound, eventos customizados de automações, execuções de automação, operações
-         *     de webhook nem eventos de auditoria. O endpoint legado `/v1/messages/{id}/events` mantém
-         *     sua resposta cronológica e sem paginação.
+         * @description Sem `include`, mantém a timeline outbound e seus cursores v1 exatamente como antes.
+         *     `include=inbound` acrescenta recebimentos comuns positivamente classificados do tenant,
+         *     usa cursor v2 e exige simultaneamente `messages:read` e `inbound:read`. Entradas técnicas,
+         *     históricas ambíguas e não classificadas não aparecem. `message_id` é inválido no modo
+         *     misto. Não inclui eventos customizados, execuções de automação, operações de webhook nem
+         *     eventos de auditoria. O endpoint legado `/v1/messages/{id}/events` não muda.
          */
         readonly get: operations["getMessagesEvents"];
         readonly put?: never;
@@ -2304,6 +2305,8 @@ export interface components {
         };
         /** @enum {string} */
         readonly OutboundMessageEventType: "queued" | "sent" | "delivered" | "deferred" | "soft_bounce" | "hard_bounce" | "complaint" | "open" | "click" | "unsubscribe" | "rejected" | "failed" | "suppressed";
+        /** @enum {string} */
+        readonly MessageTimelineFilterType: "queued" | "sent" | "delivered" | "deferred" | "soft_bounce" | "hard_bounce" | "complaint" | "open" | "click" | "unsubscribe" | "rejected" | "failed" | "suppressed" | "inbound.received";
         readonly MessageTimelineEvent: {
             /** @description UUID estável do evento persistido (`event_uuid`). */
             readonly id: components["schemas"]["UUID"];
@@ -2321,6 +2324,40 @@ export interface components {
         readonly MessageTimelinePage: {
             readonly data: readonly components["schemas"]["MessageTimelineEvent"][];
             /** @description Cursor opaco para a página seguinte; ausente quando não há mais eventos no período. */
+            readonly next_cursor?: string;
+        };
+        readonly MessageTimelineOptInOutboundEvent: {
+            readonly id: components["schemas"]["UUID"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            readonly source: "outbound";
+            readonly message_id: components["schemas"]["UUID"];
+            readonly type: components["schemas"]["OutboundMessageEventType"];
+            readonly occurred_at: components["schemas"]["Timestamp"];
+            readonly recipient?: string;
+            readonly smtp_code?: number;
+            readonly enhanced_code?: string;
+            readonly diagnostic?: string;
+            readonly mx_host?: string;
+            /** Format: uri */
+            readonly click_url?: string;
+        };
+        readonly MessageTimelineInboundEvent: {
+            readonly id: components["schemas"]["UUID"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            readonly source: "inbound";
+            readonly inbound_message_id: components["schemas"]["UUID"];
+            /** @constant */
+            readonly type: "inbound.received";
+            readonly occurred_at: components["schemas"]["Timestamp"];
+        };
+        readonly MessageTimelineOptInPage: {
+            readonly data: readonly (components["schemas"]["MessageTimelineOptInOutboundEvent"] | components["schemas"]["MessageTimelineInboundEvent"])[];
             readonly next_cursor?: string;
         };
         readonly EngagementResponse: {
@@ -4449,15 +4486,17 @@ export interface operations {
     readonly getMessagesEvents: {
         readonly parameters: {
             readonly query?: {
+                /** @description O valor `inbound` habilita a página mista e exige também `inbound:read`. */
+                readonly include?: "inbound";
                 /** @description Cursor opaco retornado em `next_cursor`; não deve ser interpretado ou alterado pelo cliente. */
                 readonly cursor?: string;
                 /** @description Quantidade máxima de eventos retornados. */
                 readonly limit?: number;
                 /** @description Janela relativa ao instante da consulta; usa `24h` quando omitida. */
                 readonly period?: "24h" | "7d" | "14d" | "30d";
-                /** @description Filtra por um único tipo outbound de entrega ou tracking. */
-                readonly type?: components["schemas"]["OutboundMessageEventType"];
-                /** @description Filtra pelo UUID de uma mensagem pertencente ao tenant autenticado. */
+                /** @description `inbound.received` só é aceito com `include=inbound`; os demais tipos filtram outbound. */
+                readonly type?: components["schemas"]["MessageTimelineFilterType"];
+                /** @description Filtra pelo UUID de mensagem outbound; incompatível com `include=inbound`. */
                 readonly message_id?: string;
             };
             readonly header?: never;
@@ -4474,7 +4513,7 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content: {
-                    readonly "application/json": components["schemas"]["MessageTimelinePage"];
+                    readonly "application/json": components["schemas"]["MessageTimelinePage"] | components["schemas"]["MessageTimelineOptInPage"];
                 };
             };
             readonly 400: components["responses"]["ValidationError"];
