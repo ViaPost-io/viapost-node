@@ -2137,7 +2137,14 @@ export interface components {
             readonly status: "operational" | "degraded" | "unknown";
             /** @description Mensagem pública pré-curada; não contém erro técnico, métricas nem topologia. */
             readonly message: string;
-        };
+            /**
+             * Format: date-time
+             * @description Somente no componente tracking, quando a prova sintética de abertura
+             *     verificada pelo servidor ainda está vigente. Horário UTC da verificação;
+             *     ausente sem prova atual, inclusive quando o estado é unknown.
+             */
+            readonly verified_at?: string;
+        } & (unknown & unknown);
         readonly PublicStatusNotice: {
             readonly id: components["schemas"]["UUID"];
             /** @enum {string} */
