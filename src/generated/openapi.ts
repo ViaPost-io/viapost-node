@@ -1858,6 +1858,11 @@ export interface components {
                 readonly [key: string]: unknown;
             };
         };
+        readonly MaterializeSaasOnboardingRecipeRequest: {
+            readonly event_id: components["schemas"]["UUID"];
+            readonly template_id: components["schemas"]["UUID"];
+            readonly sender_domain_id: components["schemas"]["UUID"];
+        };
         readonly AutomationRun: {
             readonly id: components["schemas"]["UUID"];
             readonly automation_id: components["schemas"]["UUID"];
