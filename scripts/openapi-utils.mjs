@@ -14,19 +14,32 @@ export function sdkContract(contract) {
   const sanitized = structuredClone(contract);
   delete sanitized.components?.securitySchemes?.sessionCookie;
   delete sanitized.components?.parameters?.CsrfHeader;
+  delete sanitized.components?.parameters?.RequiredCsrfHeader;
 
-  for (const pathItem of Object.values(sanitized.paths ?? {})) {
-    for (const operation of Object.values(pathItem ?? {})) {
+  const methods = ["get", "put", "post", "delete", "options", "head", "patch", "trace"];
+  for (const [path, pathItem] of Object.entries(sanitized.paths ?? {})) {
+    for (const method of methods) {
+      const operation = pathItem?.[method];
       if (!operation || typeof operation !== "object" || !("responses" in operation)) continue;
+      const security = operation.security ?? contract.security;
+      // Each OpenAPI security entry is an alternative. A requirement containing
+      // sessionCookie cannot be satisfied by this API-key-only SDK.
+      if (Array.isArray(security) && security.length > 0 && security.every((entry) => "sessionCookie" in entry)) {
+        delete pathItem[method];
+        continue;
+      }
       if (Array.isArray(operation.security)) {
         operation.security = operation.security.filter((entry) => !("sessionCookie" in entry));
       }
       if (Array.isArray(operation.parameters)) {
         operation.parameters = operation.parameters.filter(
-          (parameter) => parameter?.$ref !== "#/components/parameters/CsrfHeader",
+          (parameter) =>
+            parameter?.$ref !== "#/components/parameters/CsrfHeader" &&
+            parameter?.$ref !== "#/components/parameters/RequiredCsrfHeader",
         );
       }
     }
+    if (!methods.some((method) => method in pathItem)) delete sanitized.paths[path];
   }
   return sanitized;
 }
