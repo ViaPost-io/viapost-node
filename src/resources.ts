@@ -391,7 +391,7 @@ export class TemplatesResource {
 
 export class WebhooksResource {
   constructor(private readonly http: HTTPClient) {}
-  list(options: RequestOptions = {}) {
+  list(options: RequestOptions & { readonly query?: QueryOf<"getWebhooks"> } = {}) {
     return this.http.request<WebhookList>("GET", "/v1/webhooks", options);
   }
   create(input: BodyOf<"postWebhooks">, options: RequestOptions = {}) {
