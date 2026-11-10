@@ -4,6 +4,66 @@
  */
 
 export interface paths {
+    readonly "/v1/broadcasts/manage": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Consulta visão paginada de gerenciamento de campanhas
+         * @description Tenant-scoped. Filtros q, status, target_kind, segment_id, created_from, created_to, sort, order, page e page_size; private, no-store.
+         */
+        readonly get: operations["getBroadcastsManage"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/broadcasts/overview": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Consulta métricas agregadas de campanhas
+         * @description Tenant-scoped. Aceita created_from/to, target_kind e segment_id; resposta private, no-store.
+         */
+        readonly get: operations["getBroadcastsOverview"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/broadcasts/{id}/analytics": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Consulta analytics de uma campanha
+         * @description Tenant-scoped e private, no-store. Datas from/to aceitam YYYY-MM-DD; top_links_limit entre 1 e 20, padrão 10.
+         */
+        readonly get: operations["getBroadcastsIdAnalytics"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/v1/automations": {
         readonly parameters: {
             readonly query?: never;
@@ -160,6 +220,158 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/v1/broadcasts": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Lista os broadcasts do tenant
+         * @description Retorna os broadcasts em ordem decrescente de criação. O cursor é opaco e deve ser reutilizado sem alterações.
+         */
+        readonly get: operations["getBroadcasts"];
+        readonly put?: never;
+        /**
+         * Cria um draft de broadcast
+         * @description Cria um draft para um domínio verificado, uma versão atualmente publicada de template e,
+         *     quando aplicável, um segmento estático ativo. Repetir a mesma solicitação com a mesma chave
+         *     retorna o recurso original; reutilizar a chave com outro corpo retorna `409`.
+         */
+        readonly post: operations["postBroadcasts"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/broadcasts/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Obtém um broadcast e seus contadores de entrega */
+        readonly get: operations["getBroadcastsId"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        /**
+         * Atualiza draft de campanha com controle otimista de versão
+         * @description Tenant-scoped; só altera campanha draft. Espera expected_version e campos documentados em CreateBroadcastRequest. API Key ou sessão; sessão exige CSRF. A versão divergente retorna conflict. Resposta private, no-store.
+         */
+        readonly patch: operations["patchBroadcastsId"];
+        readonly trace?: never;
+    };
+    readonly "/v1/broadcasts/{id}/cancel": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Cancela um broadcast com controle otimista de versão
+         * @description Cancela recipients ainda pendentes ou em processamento. Mensagens já enfileiradas não são
+         *     recolhidas. Repetir a operação para um broadcast já cancelado é idempotente, mesmo com a
+         *     versão original; demais versões divergentes e estados terminais incompatíveis retornam `409`.
+         */
+        readonly post: operations["postBroadcastsIdCancel"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/broadcasts/{id}/schedule": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Materializa a audiência e agenda o broadcast imediatamente
+         * @description Aceita somente draft na versão informada. Materializa até 1.000 contatos elegíveis e agenda
+         *     o início para aproximadamente um segundo após a solicitação. Audiência vazia ou acima do
+         *     limite retorna `400`; versão/estado incompatível ou domínio não mais verificado retorna `409`.
+         *     Exige exatamente um `Idempotency-Key`; a mesma chave e solicitação devolvem o resultado
+         *     persistido por 30 dias, e reutilização para outra campanha/versão/approval retorna `409`.
+         *     O agendamento é fail-closed e retorna `503 service_unavailable` sem materializar a audiência
+         *     quando o gate de execução está desabilitado ou o tenant não está autorizado para o rollout.
+         */
+        readonly post: operations["postBroadcastsIdSchedule"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/tags": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** GET /v1/tags */
+        readonly get: operations["getContactTags"];
+        readonly put?: never;
+        /** POST /v1/tags */
+        readonly post: operations["createContactTag"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/tags/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** GET /v1/tags/{id} */
+        readonly get: operations["getContactTag"];
+        readonly put?: never;
+        readonly post?: never;
+        /** DELETE /v1/tags/{id} */
+        readonly delete: operations["deleteContactTag"];
+        readonly options?: never;
+        readonly head?: never;
+        /** PATCH /v1/tags/{id} */
+        readonly patch: operations["updateContactTag"];
+        readonly trace?: never;
+    };
+    readonly "/v1/contacts/tags": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * POST /v1/contacts/tags
+         * @description Operação tenant-scoped; cada contato e etiqueta é validado no tenant ativo. Limites da API são 200 contatos e 50 etiquetas por chamada.
+         */
+        readonly post: operations["bulkContactTags"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/v1/contacts": {
         readonly parameters: {
             readonly query?: never;
@@ -195,9 +407,10 @@ export interface paths {
         readonly put?: never;
         /**
          * POST /v1/contacts/import
-         * @description Importação síncrona, atômica e somente de criação para no máximo 1.000 contatos do tenant.
+         * @description Importação síncrona, por padrão atômica e somente de criação de perfis para no máximo 1.000 contatos do tenant.
          *     Aceita CSV UTF-8 (BOM opcional) com cabeçalho exato `email,first_name,last_name,subscribed,properties`.
-         *     Contatos existentes não são alterados; duplicatas do arquivo preservam a primeira linha válida.
+         *     Perfis existentes não são alterados; etiquetas explicitamente informadas podem ser atualizadas.
+         *     Uma sexta coluna tags aceita um array JSON de nomes; duplicatas preservam a primeira linha válida.
          *     `subscribed` vazio cria contato não inscrito por padrão seguro de consentimento.
          */
         readonly post: operations["postContactsImport"];
@@ -708,6 +921,30 @@ export interface paths {
         readonly get: operations["getInboundMessagesIdRaw"];
         readonly put?: never;
         readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/broadcasts/{id}/test": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Envia um teste do draft ao e-mail verificado do usuário autenticado
+         * @description Envia o snapshot compilado somente ao próprio e-mail verificado do usuário que iniciou a
+         *     chamada. Exige o scope específico `email:test` e `broadcasts:read`; não usa a audiência do
+         *     broadcast. O recurso precisa continuar em draft e `expected_version` precisa corresponder.
+         *     Domínio verificado, supressões, quota e demais gates da pipeline normal de envio continuam
+         *     aplicáveis. Repetir uma chave de idempotência já usada não cria outra mensagem.
+         */
+        readonly post: operations["postBroadcastsIdTest"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -1415,6 +1652,57 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/v1/webhooks/events": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Catálogo versionado de eventos emitidos */
+        readonly get: operations["getWebhookEventCatalog"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/webhooks/metrics": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Indicadores reais por tenant e período */
+        readonly get: operations["getWebhookMetrics"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/v1/webhook-deliveries": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Logs de entrega de todos os endpoints do tenant */
+        readonly get: operations["getTenantWebhookDeliveries"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/v1/webhooks/{id}": {
         readonly parameters: {
             readonly query?: never;
@@ -1422,7 +1710,8 @@ export interface paths {
             readonly path?: never;
             readonly cookie?: never;
         };
-        readonly get?: never;
+        /** Detalhes de um endpoint do tenant */
+        readonly get: operations["getWebhookEndpoint"];
         readonly put?: never;
         readonly post?: never;
         /** DELETE /v1/webhooks/{id} */
@@ -1602,6 +1891,87 @@ export interface components {
         };
         readonly AutomationList: {
             readonly data: readonly components["schemas"]["Automation"][];
+        };
+        readonly BroadcastCounts: {
+            /** Format: int64 */
+            readonly audience: number;
+            /** Format: int64 */
+            readonly queued: number;
+            /** Format: int64 */
+            readonly skipped: number;
+            /** Format: int64 */
+            readonly failed: number;
+            /** Format: int64 */
+            readonly cancelled: number;
+        };
+        readonly Broadcast: {
+            readonly id: components["schemas"]["UUID"];
+            readonly name: string;
+            /** @enum {string} */
+            readonly status: "draft" | "preparing" | "scheduled" | "dispatching" | "cancelling" | "completed" | "completed_with_errors" | "cancelled" | "failed";
+            /** @enum {string} */
+            readonly target_kind: "all_contacts" | "segment";
+            readonly segment_id: components["schemas"]["UUID"] | null;
+            readonly scheduled_at: components["schemas"]["Timestamp"] | null;
+            readonly snapshot_at: components["schemas"]["Timestamp"] | null;
+            readonly started_at: components["schemas"]["Timestamp"] | null;
+            readonly completed_at: components["schemas"]["Timestamp"] | null;
+            readonly cancelled_at: components["schemas"]["Timestamp"] | null;
+            readonly failure_code: ("snapshot_failed" | "quota_exceeded" | "dispatch_failed" | "retry_exhausted") | null;
+            /** Format: int64 */
+            readonly version: number;
+            readonly counts: components["schemas"]["BroadcastCounts"];
+            readonly created_at: components["schemas"]["Timestamp"];
+            readonly updated_at: components["schemas"]["Timestamp"];
+        };
+        readonly BroadcastList: {
+            readonly data: readonly components["schemas"]["Broadcast"][];
+            readonly next_cursor: string | null;
+        };
+        readonly BroadcastDeliveryCounts: {
+            /** Format: int64 */
+            readonly processed: number;
+            /** Format: int64 */
+            readonly delivered: number;
+            /** Format: int64 */
+            readonly bounced: number;
+            /** Format: int64 */
+            readonly failed: number;
+        };
+        readonly BroadcastDetail: {
+            readonly broadcast: components["schemas"]["Broadcast"];
+            readonly delivery_counts: components["schemas"]["BroadcastDeliveryCounts"];
+        };
+        readonly BroadcastContentSnapshot: {
+            /** @constant */
+            readonly schema: "viapost.broadcast/v1";
+            readonly from_name: string | null;
+            readonly reply_to: string | null;
+            readonly subject: string | null;
+            /** @description O MVP não aceita variáveis por broadcast; envie um objeto vazio. */
+            readonly variables: Record<string, never>;
+            readonly tags: readonly string[];
+            readonly metadata: {
+                readonly [key: string]: unknown;
+            };
+        };
+        readonly CreateBroadcastRequest: {
+            /** @description Espaços nas extremidades são removidos antes da validação e persistência. */
+            readonly name: string;
+            /** @enum {string} */
+            readonly target_kind: "all_contacts" | "segment";
+            /** @description Obrigatório e não nulo quando target_kind é segment; deve ser omitido ou nulo para all_contacts. */
+            readonly segment_id?: components["schemas"]["UUID"] | null;
+            readonly domain_id: components["schemas"]["UUID"];
+            readonly template_version_id: components["schemas"]["UUID"];
+            /** @description Endereço canônico sem nome de exibição; o domínio deve corresponder ao domain_id verificado. */
+            readonly from_address: string;
+            /** @description Quando omitido, a API usa o snapshot vazio padrão do schema viapost.broadcast/v1. */
+            readonly content_snapshot?: components["schemas"]["BroadcastContentSnapshot"];
+        } & (unknown & unknown);
+        readonly BroadcastVersionRequest: {
+            /** Format: int64 */
+            readonly expected_version: number;
         };
         readonly Domain: {
             readonly id: components["schemas"]["UUID"];
@@ -1902,6 +2272,46 @@ export interface components {
             readonly run: components["schemas"]["AutomationRun"];
             readonly steps: readonly components["schemas"]["AutomationRunStep"][];
         };
+        readonly ContactTagRef: {
+            readonly id: components["schemas"]["UUID"];
+            readonly name: string;
+            readonly color: string;
+        };
+        readonly ContactTag: {
+            readonly id: components["schemas"]["UUID"];
+            readonly name: string;
+            readonly description: string | null;
+            readonly color: string;
+            readonly contact_count: number;
+            readonly created_at: components["schemas"]["Timestamp"];
+            readonly updated_at: components["schemas"]["Timestamp"];
+        };
+        readonly ContactTagList: {
+            readonly data: readonly components["schemas"]["ContactTag"][];
+            readonly next_cursor: string | null;
+        };
+        readonly CreateContactTagRequest: {
+            /** @description Unicidade por tenant com Unicode NFKC e case folding. */
+            readonly name: string;
+            readonly description?: string | null;
+            /** @default #64748B */
+            readonly color?: string;
+        };
+        readonly UpdateContactTagRequest: {
+            readonly name?: string;
+            readonly description?: string | null;
+            readonly color?: string;
+        };
+        readonly ContactTagIDs: readonly components["schemas"]["UUID"][];
+        readonly BulkContactTagRequest: {
+            readonly contact_ids: readonly components["schemas"]["UUID"][];
+            readonly tag_ids: components["schemas"]["ContactTagIDs"];
+            /**
+             * @description Lista vazia de etiquetas somente para replace.
+             * @enum {string}
+             */
+            readonly operation: "add" | "remove" | "replace";
+        };
         readonly Contact: {
             readonly id: components["schemas"]["UUID"];
             /**
@@ -1911,6 +2321,7 @@ export interface components {
             readonly email: string;
             readonly first_name?: string | null;
             readonly last_name?: string | null;
+            readonly tags: readonly components["schemas"]["ContactTagRef"][];
             readonly subscribed: boolean;
             /** @description Objeto JSON livre; nunca é `null` nem array. */
             readonly properties: {
@@ -1920,6 +2331,7 @@ export interface components {
             readonly updated_at: components["schemas"]["SegmentTimestamp"];
         };
         readonly CreateContactRequest: {
+            readonly tag_ids?: components["schemas"]["ContactTagIDs"];
             /**
              * Format: email
              * @description Caixa postal válida, sem nome de exibição ou espaços; é normalizada em minúsculas.
@@ -1934,6 +2346,7 @@ export interface components {
             };
         };
         readonly UpdateContactRequest: {
+            readonly tag_ids?: components["schemas"]["ContactTagIDs"];
             /**
              * Format: email
              * @description Caixa postal válida, sem nome de exibição ou espaços; é normalizada em minúsculas.
@@ -1953,6 +2366,12 @@ export interface components {
             readonly next_cursor: string;
         };
         readonly ContactImportResult: {
+            readonly failed?: number;
+            readonly errors?: readonly {
+                readonly line: number;
+                readonly field: string;
+                readonly code: string;
+            }[];
             readonly total: number;
             readonly created: number;
             /** @description Contatos já existentes ou que venceram uma corrida concorrente no banco. */
@@ -2582,7 +3001,20 @@ export interface components {
         readonly SegmentRuleDepth1: components["schemas"]["AllGroupDepth2"] | components["schemas"]["AnyGroupDepth2"] | components["schemas"]["LeafRule"];
         readonly SegmentRuleDepth2: components["schemas"]["AllGroupDepth3"] | components["schemas"]["AnyGroupDepth3"] | components["schemas"]["LeafRule"];
         readonly SegmentRuleDepth3: components["schemas"]["AllGroupDepth4"] | components["schemas"]["AnyGroupDepth4"] | components["schemas"]["LeafRule"];
-        readonly LeafRule: components["schemas"]["TextAttributePredicate"] | components["schemas"]["TextPresencePredicate"] | components["schemas"]["SubscribedPredicate"] | components["schemas"]["CreatedAtPredicate"] | components["schemas"]["PropertyValuePredicate"] | components["schemas"]["PropertyPresencePredicate"] | components["schemas"]["CustomEventPredicate"];
+        readonly LeafRule: components["schemas"]["TextAttributePredicate"] | components["schemas"]["TextPresencePredicate"] | components["schemas"]["SubscribedPredicate"] | components["schemas"]["CreatedAtPredicate"] | components["schemas"]["PropertyValuePredicate"] | components["schemas"]["PropertyPresencePredicate"] | components["schemas"]["CustomEventPredicate"] | components["schemas"]["ContactTagPredicate"];
+        readonly ContactTagPredicate: {
+            /** @constant */
+            readonly field: "tags";
+            /** @enum {string} */
+            readonly operator: "contains" | "lacks";
+            readonly value: components["schemas"]["UUID"];
+        } | {
+            /** @constant */
+            readonly field: "tags";
+            /** @enum {string} */
+            readonly operator: "any" | "all" | "none";
+            readonly value: components["schemas"]["ContactTagIDs"];
+        };
         readonly TextAttributePredicate: {
             /** @enum {string} */
             readonly field: "email" | "first_name" | "last_name";
@@ -2735,14 +3167,76 @@ export interface components {
                 readonly [key: string]: unknown;
             };
         };
+        readonly WebhookLastDelivery: {
+            readonly delivery_id: components["schemas"]["UUID"];
+            readonly state: string;
+            /** @enum {string} */
+            readonly status: "pending" | "delivered" | "failed";
+            readonly created_at: components["schemas"]["Timestamp"];
+            readonly updated_at: components["schemas"]["Timestamp"];
+            readonly response_code: number | null;
+            readonly duration_ms: number | null;
+        };
+        readonly WebhookRequestedBy: {
+            readonly id: components["schemas"]["UUID"];
+            /** @enum {string} */
+            readonly kind: "user" | "api_key";
+        };
+        readonly WebhookEventCatalog: {
+            readonly events: readonly {
+                readonly type: string;
+                /** @enum {string} */
+                readonly category: "delivery" | "engagement" | "inbound" | "diagnostic";
+                readonly description: string;
+                readonly source: string;
+                readonly emitted: boolean;
+                readonly subscribable: boolean;
+                /** @constant */
+                readonly schema_version: "1";
+                /** @description Exemplo sintético do corpo da versão indicada. */
+                readonly example: {
+                    readonly [key: string]: unknown;
+                };
+                /** @description best_effort_legacy indica publisher sem outbox durável. */
+                readonly delivery_guarantee?: string;
+            }[];
+        };
+        /** @description Janela de criação inclusiva/exclusiva; padrão 30 dias e máximo 90 dias. Contagens limitadas à retenção disponível. */
+        readonly WebhookMetrics: {
+            /** @description Endpoints atuais do tenant; independente do período das entregas. */
+            readonly endpoint_total: number;
+            /** @description Endpoints atualmente ativos do tenant; independente do período das entregas. */
+            readonly endpoints_active: number;
+            readonly from: components["schemas"]["Timestamp"];
+            readonly to: components["schemas"]["Timestamp"];
+            /** @description UUIDs distintos em jobs kind=event; exclui teste e replay. */
+            readonly events_total: number;
+            readonly deliveries_total: number;
+            readonly delivered: number;
+            readonly failed: number;
+            readonly cancelled: number;
+            readonly pending: number;
+            /** @description Tentativas no período, inclusive sem duração. */
+            readonly attempts_total: number;
+            /** @description delivered dividido por delivered+failed+cancelled; null sem terminais. */
+            readonly success_rate: number | null;
+            readonly average_duration_ms: number | null;
+            readonly p95_duration_ms: number | null;
+        };
         readonly WebhookEndpoint: {
+            /** @description Nome opcional do endpoint; vazio em registros legados sem nome. */
+            readonly name: string;
+            /** @constant */
+            readonly payload_version: "1";
+            readonly last_delivery: components["schemas"]["WebhookLastDelivery"] | null;
             readonly id: components["schemas"]["UUID"];
             /**
              * Format: uri
              * @description URL HTTPS pública, sem credenciais ou fragmento; destinos privados são rejeitados.
              */
             readonly url: string;
-            readonly event_types: readonly components["schemas"]["WebhookSubscribableEventType"][];
+            readonly description?: string | null;
+            readonly event_types: readonly string[];
             readonly enabled: boolean;
             readonly max_attempts: number;
             readonly consecutive_failures: number;
@@ -2754,14 +3248,23 @@ export interface components {
             readonly updated_at: components["schemas"]["Timestamp"];
         };
         /** @enum {string} */
-        readonly WebhookSubscribableEventType: "queued" | "sent" | "delivered" | "deferred" | "soft_bounce" | "hard_bounce" | "complaint" | "open" | "click" | "unsubscribe" | "rejected" | "failed" | "suppressed" | "inbound.received";
-        readonly WebhookDeliveryEventType: components["schemas"]["WebhookSubscribableEventType"] | "webhook.test";
+        readonly WebhookSubscribableEventType: "sent" | "delivered" | "deferred" | "hard_bounce" | "open" | "click" | "unsubscribe" | "failed" | "suppressed";
+        /** @description Tipo persistido, incluindo eventos legados e webhook.test. */
+        readonly WebhookDeliveryEventType: string;
         readonly WebhookList: {
             readonly webhooks: readonly components["schemas"]["WebhookEndpoint"][];
+            /** @description Ausente na última página. */
+            readonly next_cursor?: string;
         };
         readonly CreateWebhookRequest: {
+            readonly name?: string;
+            /** @default true */
+            readonly enabled?: boolean;
+            /** @default 8 */
+            readonly max_attempts?: number;
             /** Format: uri */
             readonly url: string;
+            readonly description?: string;
             readonly event_types: readonly components["schemas"]["WebhookSubscribableEventType"][];
         };
         readonly CreateWebhookResponse: {
@@ -2770,8 +3273,13 @@ export interface components {
             readonly secret: string;
         };
         readonly UpdateWebhookRequest: {
+            readonly name?: string;
             /** Format: int64 */
             readonly expected_version: number;
+            /** Format: uri */
+            readonly url?: string;
+            /** @description String vazia limpa a descrição. */
+            readonly description?: string;
             readonly enabled?: boolean;
             readonly event_types?: readonly components["schemas"]["WebhookSubscribableEventType"][];
             readonly max_attempts?: number;
@@ -2785,6 +3293,9 @@ export interface components {
          */
         readonly WebhookDeliveryStatus: "pending" | "delivered" | "failed";
         readonly WebhookDeliverySummary: {
+            readonly endpoint_id: components["schemas"]["UUID"];
+            /** @enum {string} */
+            readonly state: "queued" | "processing" | "retry_scheduled" | "delivered" | "failed" | "cancelled";
             readonly delivery_id: components["schemas"]["UUID"];
             readonly event_type: components["schemas"]["WebhookDeliveryEventType"];
             readonly status: components["schemas"]["WebhookDeliveryStatus"];
@@ -2804,6 +3315,14 @@ export interface components {
             readonly next_cursor?: string;
         };
         readonly WebhookDeliveryAttempt: {
+            /** @description SHA-256 da resposta; nunca seu conteúdo. */
+            readonly response_hash_sha256: string | null;
+            readonly response_size_bytes: number | null;
+            /**
+             * @description Diagnóstico limitado; null em sucesso ou tentativa legada sem classificação.
+             * @enum {string|null}
+             */
+            readonly error_class: "network" | "timeout" | "tls" | "blocked_destination" | "http_3xx" | "http_4xx" | "http_5xx" | "cancelled" | null;
             readonly attempt: number;
             /** @description Estado persistido da tentativa; consumidores não devem inferir o estado agregado por este campo. */
             readonly status: string;
@@ -2824,6 +3343,16 @@ export interface components {
             readonly test?: boolean;
         };
         readonly WebhookDeliveryDetail: components["schemas"]["WebhookDeliverySummary"] & {
+            /** @description Cabeçalhos invariantes reconstruídos; não contém timestamp nem assinatura por tentativa. */
+            readonly headers_permitted: {
+                /** @constant */
+                readonly "Content-Type"?: "application/json";
+                readonly "X-ViaPost-Delivery"?: components["schemas"]["UUID"];
+                readonly "X-ViaPost-Event"?: string;
+                /** @constant */
+                readonly "X-ViaPost-Payload-Version"?: "1";
+            };
+            readonly requested_by: components["schemas"]["WebhookRequestedBy"] | null;
             readonly payload_redacted: components["schemas"]["WebhookPayloadRedacted"];
             readonly attempts: readonly components["schemas"]["WebhookDeliveryAttempt"][];
         };
@@ -2942,6 +3471,8 @@ export interface components {
         };
     };
     parameters: {
+        /** @description Identificador UUID do recurso dentro do tenant ativo. */
+        readonly ResourceId: string;
         /** @description Cursor RFC 3339 exclusivo; ausente ou inválido usa um instante futuro. */
         readonly TimestampCursor: string;
         /** @description Quantidade solicitada; ausente, não numérica ou não positiva usa 50. */
@@ -2950,6 +3481,10 @@ export interface components {
         readonly AutomationCursor: string;
         /** @description Máximo de itens por página; padrão 50. */
         readonly AutomationLimit: number;
+        /** @description Cursor opaco base64url retornado pela API; timestamps RFC 3339 legados também são aceitos. Não o interprete ou modifique. */
+        readonly BroadcastCursor: string;
+        /** @description Máximo de broadcasts por página; padrão 50. */
+        readonly BroadcastLimit: number;
         /** @description Valores não positivos ou inválidos usam 14; valores acima de 90 são limitados a 90. */
         readonly Days: number;
         readonly IdempotencyKey: string;
@@ -2958,6 +3493,8 @@ export interface components {
          *     repetir exatamente a mesma solicitação; uso conflitante retorna `409`.
          */
         readonly IdempotencyKeyRequired: string;
+        /** @description Chave de 1 a 200 bytes, sem espaços nas extremidades, reutilizável somente com o mesmo corpo normalizado. */
+        readonly BroadcastIdempotencyKey: string;
     };
     requestBodies: never;
     headers: never;
@@ -2965,6 +3502,95 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    readonly getBroadcastsManage: {
+        readonly parameters: {
+            readonly query?: {
+                readonly q?: string;
+                readonly status?: string;
+                readonly target_kind?: "all_contacts" | "segment";
+                readonly segment_id?: string;
+                readonly created_from?: string;
+                readonly created_to?: string;
+                readonly sort?: string;
+                readonly order?: "asc" | "desc";
+                readonly page?: number;
+                readonly page_size?: number;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Resultado paginado de gerenciamento de campanhas. */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getBroadcastsOverview: {
+        readonly parameters: {
+            readonly query?: {
+                readonly created_from?: string;
+                readonly created_to?: string;
+                readonly target_kind?: "all_contacts" | "segment";
+                readonly segment_id?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Métricas agregadas de campanhas no intervalo/segmento. */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getBroadcastsIdAnalytics: {
+        readonly parameters: {
+            readonly query?: {
+                readonly from?: string;
+                readonly to?: string;
+                readonly top_links_limit?: number;
+            };
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Métricas detalhadas de campanha. */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
     readonly getAutomations: {
         readonly parameters: {
             readonly query?: {
@@ -3330,6 +3956,408 @@ export interface operations {
             readonly 500: components["responses"]["InternalError"];
         };
     };
+    readonly getBroadcasts: {
+        readonly parameters: {
+            readonly query?: {
+                /** @description Cursor opaco base64url retornado pela API; timestamps RFC 3339 legados também são aceitos. Não o interprete ou modifique. */
+                readonly cursor?: components["parameters"]["BroadcastCursor"];
+                /** @description Máximo de broadcasts por página; padrão 50. */
+                readonly limit?: components["parameters"]["BroadcastLimit"];
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Página de broadcasts */
+            readonly 200: {
+                headers: {
+                    readonly "Cache-Control"?: "private, no-store";
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["BroadcastList"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postBroadcasts: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header: {
+                /** @description Chave de 1 a 200 bytes, sem espaços nas extremidades, reutilizável somente com o mesmo corpo normalizado. */
+                readonly "Idempotency-Key": components["parameters"]["BroadcastIdempotencyKey"];
+            };
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CreateBroadcastRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Replay idempotente de um draft existente */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Broadcast"];
+                };
+            };
+            /** @description Draft criado */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Broadcast"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+            readonly 503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    readonly getBroadcastsId: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Broadcast e contadores derivados das mensagens materializadas */
+            readonly 200: {
+                headers: {
+                    readonly "Cache-Control"?: "private, no-store";
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["BroadcastDetail"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly patchBroadcastsId: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CreateBroadcastRequest"] & {
+                    /** Format: int64 */
+                    readonly expected_version: number;
+                };
+            };
+        };
+        readonly responses: {
+            /** @description Campanha draft atualizada. */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postBroadcastsIdCancel: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["BroadcastVersionRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Broadcast cancelado ou replay idempotente do cancelamento */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Broadcast"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly postBroadcastsIdSchedule: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header: {
+                /** @description Chave de 1 a 200 bytes, sem espaços nas extremidades, reutilizável somente com o mesmo corpo normalizado. */
+                readonly "Idempotency-Key": components["parameters"]["BroadcastIdempotencyKey"];
+            };
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["BroadcastVersionRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Audiência materializada e broadcast agendado */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Broadcast"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+            /** @description Gate de agendamento negado; envelope genérico com `error.code=service_unavailable` e `error.message=internal server error`. */
+            readonly 503: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    readonly getContactTags: {
+        readonly parameters: {
+            readonly query?: {
+                readonly q?: string;
+                readonly color?: string;
+                readonly sort?: "name" | "created_at" | "contact_count";
+                readonly order?: "asc" | "desc";
+                readonly limit?: number;
+                readonly cursor?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Sucesso */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ContactTagList"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly createContactTag: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CreateContactTagRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Sucesso */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ContactTag"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getContactTag: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                /** @description Identificador UUID do recurso dentro do tenant ativo. */
+                readonly id: components["parameters"]["ResourceId"];
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Sucesso */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ContactTag"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly deleteContactTag: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                /** @description Identificador UUID do recurso dentro do tenant ativo. */
+                readonly id: components["parameters"]["ResourceId"];
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Sucesso */
+            readonly 204: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly updateContactTag: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                /** @description Identificador UUID do recurso dentro do tenant ativo. */
+                readonly id: components["parameters"]["ResourceId"];
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["UpdateContactTagRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Sucesso */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ContactTag"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly bulkContactTags: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["BulkContactTagRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Sucesso */
+            readonly 204: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
     readonly getContacts: {
         readonly parameters: {
             readonly query?: {
@@ -3339,6 +4367,9 @@ export interface operations {
                 readonly limit?: components["parameters"]["AutomationLimit"];
                 /** @description Busca por e-mail ou nome do contato; máximo de 200 caracteres. */
                 readonly search?: string;
+                /** @description Até 50 UUIDs separados por vírgulas do tenant ativo. */
+                readonly tag_ids?: string;
+                readonly tag_match?: "any" | "all" | "none";
             };
             readonly header?: never;
             readonly path?: never;
@@ -3394,7 +4425,13 @@ export interface operations {
     };
     readonly postContactsImport: {
         readonly parameters: {
-            readonly query?: never;
+            readonly query?: {
+                /** @description Até 50 UUIDs comuns separados por vírgulas. */
+                readonly tag_ids?: string;
+                readonly tag_mode?: "add" | "replace";
+                readonly create_tags?: boolean;
+                readonly partial?: boolean;
+            };
             readonly header?: never;
             readonly path?: never;
             readonly cookie?: never;
@@ -4417,6 +5454,46 @@ export interface operations {
                 };
                 content: {
                     readonly "message/rfc822": string;
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
+            readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+            readonly 503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    readonly postBroadcastsIdTest: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header: {
+                /** @description Chave opaca por tentativa (16–150 caracteres); o mesmo valor não deve ser reutilizado para nova prévia. */
+                readonly "Idempotency-Key": string;
+            };
+            readonly path: {
+                readonly id: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": {
+                    readonly expected_version: number;
+                };
+            };
+        };
+        readonly responses: {
+            /** @description E-mail de teste aceito pela pipeline */
+            readonly 202: {
+                headers: {
+                    readonly "Cache-Control"?: "private, no-store";
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["SendResult"];
                 };
             };
             readonly 400: components["responses"]["ValidationError"];
@@ -5763,7 +6840,16 @@ export interface operations {
     };
     readonly getWebhooks: {
         readonly parameters: {
-            readonly query?: never;
+            readonly query?: {
+                readonly q?: string;
+                readonly enabled?: boolean;
+                readonly event_type?: string;
+                readonly from?: string;
+                readonly to?: string;
+                readonly limit?: number;
+                readonly cursor?: string;
+                readonly sort?: "created_at_desc" | "created_at_asc";
+            };
             readonly header?: never;
             readonly path?: never;
             readonly cookie?: never;
@@ -5815,6 +6901,123 @@ export interface operations {
             readonly 403: components["responses"]["Forbidden"];
             readonly 404: components["responses"]["NotFound"];
             readonly 409: components["responses"]["Conflict"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getWebhookEventCatalog: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Sucesso */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WebhookEventCatalog"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getWebhookMetrics: {
+        readonly parameters: {
+            readonly query?: {
+                readonly endpoint_id?: string;
+                readonly from?: string;
+                readonly to?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Sucesso */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WebhookMetrics"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getTenantWebhookDeliveries: {
+        readonly parameters: {
+            readonly query?: {
+                readonly endpoint_id?: string;
+                readonly event_type?: string;
+                readonly status?: "pending" | "delivered" | "failed";
+                readonly from?: string;
+                readonly to?: string;
+                readonly limit?: number;
+                readonly cursor?: string;
+                readonly response_code?: number;
+                readonly delivery_id?: string;
+            };
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Sucesso */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WebhookDeliveryPage"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 429: components["responses"]["TooManyRequests"];
+            readonly 500: components["responses"]["InternalError"];
+        };
+    };
+    readonly getWebhookEndpoint: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: components["schemas"]["UUID"];
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Endpoint e resumo da última entrega */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WebhookEndpoint"];
+                };
+            };
+            readonly 400: components["responses"]["ValidationError"];
+            readonly 401: components["responses"]["Unauthorized"];
+            readonly 403: components["responses"]["Forbidden"];
+            readonly 404: components["responses"]["NotFound"];
             readonly 429: components["responses"]["TooManyRequests"];
             readonly 500: components["responses"]["InternalError"];
         };
@@ -5887,6 +7090,8 @@ export interface operations {
                 readonly limit?: number;
                 readonly status?: components["schemas"]["WebhookDeliveryStatus"];
                 readonly event_type?: components["schemas"]["WebhookDeliveryEventType"];
+                readonly response_code?: number;
+                readonly delivery_id?: string;
             };
             readonly header?: never;
             readonly path: {
