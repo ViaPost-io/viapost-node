@@ -583,6 +583,26 @@ test("validates the required idempotency key on every advanced webhook write", a
   assert.throws(() => client.webhooks.rotateSecret("w", { idempotencyKey: "bad\u200Ekey" }), /control or format/);
 });
 
+test("webhook listing follows the cursor while preserving request options", async () => {
+  const calls = [];
+  const client = new ViaPost({
+    apiKey: "test",
+    fetch: async (input) => {
+      const url = new URL(input);
+      calls.push(`${url.pathname}${url.search}`);
+      return json({ webhooks: [], ...(url.searchParams.has("cursor") ? {} : { next_cursor: "page-2" }) });
+    },
+  });
+
+  const first = await client.webhooks.list({ query: { limit: 1 }, timeoutMs: 5000 });
+  const second = await client.webhooks.list({ query: { cursor: first.next_cursor, limit: 1 } });
+  assert.equal(second.next_cursor, undefined);
+  assert.deepEqual(calls, [
+    "/v1/webhooks?limit=1",
+    "/v1/webhooks?cursor=page-2&limit=1",
+  ]);
+});
+
 test("does not arm a request timeout when JSON serialization fails", async () => {
   const circular = {};
   circular.self = circular;
